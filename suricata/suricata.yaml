@@ -1,0 +1,261 @@
+%YAML 1.1
+---
+# ============================================================
+# Suricata Configuration — SOC Platform
+# Documentation : https://suricata.readthedocs.io
+# ============================================================
+
+# Interface réseau à surveiller
+# Modifier NETWORK_INTERFACE dans le .env
+vars:
+  address-groups:
+    HOME_NET: "[192.168.0.0/16,10.0.0.0/8,172.16.0.0/12]"
+    EXTERNAL_NET: "!$HOME_NET"
+    HTTP_SERVERS: "$HOME_NET"
+    SQL_SERVERS: "$HOME_NET"
+    DNS_SERVERS: "$HOME_NET"
+    TELNET_SERVERS: "$HOME_NET"
+    AIM_SERVERS: "$EXTERNAL_NET"
+    DC_SERVERS: "$HOME_NET"
+    DNP3_SERVER: "$HOME_NET"
+    DNP3_CLIENT: "$HOME_NET"
+    MODBUS_CLIENT: "$HOME_NET"
+    MODBUS_SERVER: "$HOME_NET"
+    ENIP_CLIENT: "$HOME_NET"
+    ENIP_SERVER: "$HOME_NET"
+
+  port-groups:
+    HTTP_PORTS: "80"
+    SHELLCODE_PORTS: "!80"
+    ORACLE_PORTS: 1521
+    SSH_PORTS: 22
+    DNP3_PORTS: 20000
+    MODBUS_PORTS: 502
+    FILE_DATA_PORTS: "[$HTTP_PORTS,110,143]"
+    FTP_PORTS: 21
+    GENEVE_PORTS: 6081
+    VXLAN_PORTS: 4789
+    TEREDO_PORTS: 3544
+
+# ----------------------------------------------------------
+# Capture AF-PACKET (haute performance)
+# ----------------------------------------------------------
+af-packet:
+  - interface: eth0
+    cluster-id: 99
+    cluster-type: cluster_flow
+    defrag: yes
+    use-mmap: yes
+    tpacket-v3: yes
+    ring-size: 2048
+    block-size: 32768
+    block-timeout: 10
+    use-emergency-flush: yes
+
+# ----------------------------------------------------------
+# Répertoires de travail
+# ----------------------------------------------------------
+default-log-dir: /var/log/suricata/
+unix-command:
+  enabled: auto
+  filename: /var/run/suricata/suricata-command.socket
+
+# ----------------------------------------------------------
+# Fichiers de règles
+# ----------------------------------------------------------
+default-rules-path: /var/lib/suricata/rules
+
+rule-files:
+  - suricata.rules          # Règles ET Open (mises à jour par suricata-update)
+  - local.rules             # Règles custom
+
+# suricata-update gère automatiquement:
+# - et/open             — Emerging Threats Open (gratuit)
+# - et/pro              — Emerging Threats Pro (payant, meilleur)
+# Activer avec: suricata-update enable-source et/open
+
+classification-file: /etc/suricata/classification.config
+reference-config-file: /etc/suricata/reference.config
+
+# ----------------------------------------------------------
+# Sorties (outputs)
+# ----------------------------------------------------------
+outputs:
+  # EVE JSON — Format principal pour intégration Wazuh/Logstash
+  - eve-log:
+      enabled: yes
+      filetype: regular
+      filename: /var/log/suricata/eve.json
+      community-id: true
+      community-id-seed: 0
+      xff:
+        enabled: no
+        mode: extra-data
+        deployment: reverse
+        header: X-Forwarded-For
+      types:
+        - alert:
+            payload: yes
+            payload-printable: yes
+            packet: yes
+            http-body: yes
+            http-body-printable: yes
+            metadata: yes
+            tagged-packets: yes
+        - anomaly:
+            enabled: yes
+            types:
+              decode: yes
+              stream: yes
+              applayer: yes
+        - http:
+            extended: yes
+            dump-all-headers: both
+        - dns:
+            version: 2
+            requests: yes
+            responses: yes
+        - tls:
+            extended: yes
+            session-resumption: no
+        - files:
+            force-magic: no
+        - smtp:
+            extended: yes
+        - dnp3
+        - nfs
+        - ikev2
+        - krb5
+        - ntp
+        - dhcp:
+            enabled: yes
+            extended: yes
+        - ssh
+        - flow
+        - netflow
+        - stats:
+            totals: yes
+            threads: no
+            deltas: no
+
+  # Log fast (résumé alertes — debug)
+  - fast:
+      enabled: no
+      filename: /var/log/suricata/fast.log
+      append: yes
+
+  # Stats
+  - stats:
+      enabled: yes
+      filename: /var/log/suricata/stats.log
+      append: yes
+      totals: yes
+      threads: no
+
+# ----------------------------------------------------------
+# Moteur de détection
+# ----------------------------------------------------------
+detect:
+  profile: medium
+  custom-values:
+    toclient-groups: 3
+    toserver-groups: 25
+  sgh-mpm-context: auto
+  inspection-recursion-limit: 3000
+
+# ----------------------------------------------------------
+# Décodage des flux
+# ----------------------------------------------------------
+stream:
+  memcap: 64mb
+  checksum-validation: yes
+  inline: auto
+  reassembly:
+    memcap: 256mb
+    depth: 1mb
+    toserver-chunk-size: 2560
+    toclient-chunk-size: 2560
+    randomize-chunk-size: yes
+
+# ----------------------------------------------------------
+# Couche applicative
+# ----------------------------------------------------------
+app-layer:
+  protocols:
+    tls:
+      enabled: yes
+      detection-ports:
+        dp: 443
+      ja3-fingerprints: auto
+    dcerpc:
+      enabled: yes
+    ftp:
+      enabled: yes
+    ssh:
+      enabled: yes
+    smtp:
+      enabled: yes
+    imap:
+      enabled: detection-only
+    dns:
+      tcp:
+        enabled: yes
+        detection-ports:
+          dp: 53
+      udp:
+        enabled: yes
+        detection-ports:
+          dp: 53
+    http:
+      enabled: yes
+      libhtp:
+        default-config:
+          personality: IDS
+          request-body-limit: 100kb
+          response-body-limit: 100kb
+          request-body-minimal-inspect-size: 32kb
+          request-body-inspect-window: 4kb
+          response-body-minimal-inspect-size: 40kb
+          response-body-inspect-window: 16kb
+          response-body-decompress-layer-limit: 2
+          http-body-inline: auto
+          swf-decompression:
+            enabled: yes
+            type: both
+            compress-depth: 0
+            decompress-depth: 0
+          double-decode-path: no
+          double-decode-query: no
+
+# ----------------------------------------------------------
+# Performance
+# ----------------------------------------------------------
+threading:
+  set-cpu-affinity: no
+  cpu-affinity:
+    - management-cpu-set:
+        cpu: [0]
+    - receive-cpu-set:
+        cpu: [0]
+    - worker-cpu-set:
+        cpu: ["all"]
+        mode: "balanced"
+        prio:
+          low: [0]
+          medium: ["1-2"]
+          high: ["3"]
+          default: "medium"
+  detect-thread-ratio: 1.0
+
+# ----------------------------------------------------------
+# Limites mémoire globales
+# ----------------------------------------------------------
+host-mode: auto
+max-pending-packets: 1024
+runmode: autofp
+default-packet-size: 1514
+
+host:
+  hash-size: 4096
+  prealloc: 1000
+  memcap: 32mb

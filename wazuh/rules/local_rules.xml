@@ -1,0 +1,246 @@
+<!-- ============================================================
+     Règles custom Wazuh — SOC Platform
+     Fichier : /var/ossec/etc/rules/local_rules.xml
+
+     Après modification : /var/ossec/bin/wazuh-control restart
+     Tester une règle : /var/ossec/bin/wazuh-logtest
+     ============================================================ -->
+
+<group name="local,soc_custom">
+
+  <!-- ===========================================================
+       CREDENTIAL ACCESS — Dump LSASS
+       MITRE T1003.001 — OS Credential Dumping: LSASS Memory
+       =========================================================== -->
+  <rule id="100001" level="15">
+    <if_group>sysmon_event10</if_group>
+    <field name="win.eventdata.targetImage" type="pcre2">(?i)lsass\.exe$</field>
+    <field name="win.eventdata.grantedAccess">0x1010|0x1038|0x143a|0x1fffff|0x1f3fff</field>
+    <description>CREDENTIAL DUMP: Accès mémoire LSASS suspect depuis $(win.eventdata.sourceImage)</description>
+    <mitre>
+      <id>T1003.001</id>
+    </mitre>
+    <group>credential_access,critical,pci_dss_10.6.1,gdpr_IV_35.7.d</group>
+  </rule>
+
+  <!-- ===========================================================
+       EXECUTION — PowerShell encodé / obfusqué
+       MITRE T1059.001 — Command and Scripting Interpreter: PowerShell
+       =========================================================== -->
+  <rule id="100002" level="12">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)(powershell|pwsh).{0,100}(-e\s|-en\s|-enc\s|-enco\s|-encodedcommand\s)</field>
+    <description>PowerShell encodé détecté — obfuscation possible ($(win.eventdata.parentImage))</description>
+    <mitre>
+      <id>T1059.001</id>
+      <id>T1027</id>
+    </mitre>
+    <group>execution,defense_evasion</group>
+  </rule>
+
+  <!-- PowerShell download cradle -->
+  <rule id="100003" level="13">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)(iex|invoke-expression|downloadstring|webclient|net\.webclient|downloadfile|bitstransfer)</field>
+    <description>PowerShell download cradle détecté — possible téléchargement malveillant</description>
+    <mitre>
+      <id>T1059.001</id>
+      <id>T1105</id>
+    </mitre>
+    <group>execution,command_and_control</group>
+  </rule>
+
+  <!-- ===========================================================
+       PERSISTENCE — Tâche planifiée hors heures ouvrées
+       MITRE T1053.005 — Scheduled Task/Job: Scheduled Task
+       =========================================================== -->
+  <rule id="100010" level="10">
+    <if_sid>60010</if_sid>
+    <time>22:00 - 06:00</time>
+    <description>Tâche planifiée créée en dehors des heures ouvrées</description>
+    <mitre>
+      <id>T1053.005</id>
+    </mitre>
+    <group>persistence</group>
+  </rule>
+
+  <!-- Clés Run registry modifiées -->
+  <rule id="100011" level="10">
+    <if_group>sysmon_event13</if_group>
+    <field name="win.eventdata.targetObject" type="pcre2">(?i)(\\CurrentVersion\\Run|\\CurrentVersion\\RunOnce|\\Winlogon|\\Explorer\\Run)</field>
+    <description>Clé de registre Run modifiée — persistence possible par $(win.eventdata.image)</description>
+    <mitre>
+      <id>T1547.001</id>
+    </mitre>
+    <group>persistence,registry</group>
+  </rule>
+
+  <!-- Services Windows créés -->
+  <rule id="100012" level="10">
+    <if_sid>7040</if_sid>
+    <field name="win.system.eventID">7045</field>
+    <description>Nouveau service Windows installé : $(win.eventdata.serviceName)</description>
+    <mitre>
+      <id>T1543.003</id>
+    </mitre>
+    <group>persistence</group>
+  </rule>
+
+  <!-- ===========================================================
+       CREDENTIAL ACCESS — Bruteforce RDP
+       MITRE T1110.001 — Brute Force: Password Guessing
+       =========================================================== -->
+  <rule id="100020" level="10" frequency="5" timeframe="60">
+    <if_matched_sid>60122</if_matched_sid>
+    <same_field>win.system.computer</same_field>
+    <description>Bruteforce RDP détecté sur $(win.system.computer) — 5 échecs en 60s</description>
+    <mitre>
+      <id>T1110.001</id>
+    </mitre>
+    <group>brute_force,authentication</group>
+  </rule>
+
+  <!-- Bruteforce SSH Linux -->
+  <rule id="100021" level="10" frequency="5" timeframe="120">
+    <if_matched_sid>5716</if_matched_sid>
+    <same_source_ip />
+    <description>Bruteforce SSH depuis $(srcip) — 5 tentatives en 2min</description>
+    <mitre>
+      <id>T1110.001</id>
+    </mitre>
+    <group>brute_force,authentication</group>
+  </rule>
+
+  <!-- ===========================================================
+       DEFENSE EVASION — DLL Hijacking
+       MITRE T1574.001 — Hijack Execution Flow: DLL Search Order
+       =========================================================== -->
+  <rule id="100030" level="12">
+    <if_group>sysmon_event7</if_group>
+    <field name="win.eventdata.signed">false</field>
+    <field name="win.eventdata.imagePath" type="pcre2">(?i)(\\Temp\\|\\AppData\\|\\Downloads\\|\\Public\\)</field>
+    <description>DLL non signée chargée depuis répertoire suspect : $(win.eventdata.imagePath)</description>
+    <mitre>
+      <id>T1574.001</id>
+    </mitre>
+    <group>defense_evasion,dll_hijacking</group>
+  </rule>
+
+  <!-- ===========================================================
+       IMPACT — Patterns ransomware
+       MITRE T1486 — Data Encrypted for Impact
+       =========================================================== -->
+  <rule id="100040" level="14" frequency="20" timeframe="30">
+    <if_group>sysmon_event11</if_group>
+    <field name="win.eventdata.targetFilename" type="pcre2">(?i)\.(locked|encrypted|crypted|enc|rnsmwr|wcry|wncry|zepto|cerber|locky)$</field>
+    <description>RANSOMWARE: Extensions suspectes créées en masse par $(win.eventdata.image)</description>
+    <mitre>
+      <id>T1486</id>
+    </mitre>
+    <group>impact,ransomware,critical</group>
+  </rule>
+
+  <!-- Suppression shadow copies -->
+  <rule id="100041" level="15">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)(vssadmin|wbadmin|bcdedit).*(delete|resize|recoveryenabled no|ignorefailures yes)</field>
+    <description>Suppression des sauvegardes VSS — probable ransomware en cours</description>
+    <mitre>
+      <id>T1490</id>
+    </mitre>
+    <group>impact,ransomware,critical</group>
+  </rule>
+
+  <!-- ===========================================================
+       LATERAL MOVEMENT — Pass the Hash / Mimikatz
+       MITRE T1550.002
+       =========================================================== -->
+  <rule id="100050" level="13">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)(sekurlsa|lsadump|kerberos|mimikatz|wce\.exe|fgdump)</field>
+    <description>Outil de dump credentials détecté : $(win.eventdata.commandLine)</description>
+    <mitre>
+      <id>T1003</id>
+      <id>T1550.002</id>
+    </mitre>
+    <group>credential_access,lateral_movement,critical</group>
+  </rule>
+
+  <!-- ===========================================================
+       COMMAND AND CONTROL — DNS C2 suspect
+       MITRE T1071.004 — Application Layer Protocol: DNS
+       =========================================================== -->
+  <rule id="100060" level="10">
+    <if_group>sysmon_event22</if_group>
+    <field name="win.eventdata.queryName" type="pcre2">(?i)(\.(xyz|tk|ml|ga|cf|bit)\s*$|[a-z0-9]{30,}\.(com|net|org))</field>
+    <description>Requête DNS suspecte — possible C2 : $(win.eventdata.queryName)</description>
+    <mitre>
+      <id>T1071.004</id>
+    </mitre>
+    <group>command_and_control,dns</group>
+  </rule>
+
+  <!-- ===========================================================
+       IP MALVEILLANTE (depuis liste MISP/AbuseIPDB)
+       =========================================================== -->
+  <rule id="100070" level="12">
+    <if_group>web_log</if_group>
+    <list field="srcip" lookup="address_match_key">etc/lists/threat-intel-ips</list>
+    <description>Connexion depuis IP malveillante connue (Threat Intel) : $(srcip)</description>
+    <mitre>
+      <id>T1071</id>
+    </mitre>
+    <group>threat_intel,command_and_control</group>
+  </rule>
+
+  <!-- ===========================================================
+       LINUX — Privilege Escalation
+       MITRE T1548.003 — Sudo and Sudo Caching
+       =========================================================== -->
+  <rule id="100080" level="12">
+    <if_sid>5402</if_sid>
+    <match>sudo: pam_unix</match>
+    <time>22:00 - 06:00</time>
+    <description>Utilisation sudo hors heures ouvrées — $(dstuser)</description>
+    <mitre>
+      <id>T1548.003</id>
+    </mitre>
+    <group>privilege_escalation,linux</group>
+  </rule>
+
+  <!-- Modification /etc/passwd ou /etc/sudoers -->
+  <rule id="100081" level="13">
+    <if_sid>550,551,554</if_sid>
+    <field name="file" type="pcre2">(/etc/passwd|/etc/shadow|/etc/sudoers)</field>
+    <description>Fichier critique système modifié : $(file) par $(dstuser)</description>
+    <mitre>
+      <id>T1098</id>
+    </mitre>
+    <group>privilege_escalation,linux,critical</group>
+  </rule>
+
+  <!-- Exécution depuis /tmp -->
+  <rule id="100082" level="10">
+    <if_sid>80791</if_sid>
+    <field name="audit.exe" type="pcre2">^(/tmp/|/dev/shm/|/var/tmp/)</field>
+    <description>Exécution depuis répertoire temporaire : $(audit.exe)</description>
+    <mitre>
+      <id>T1059</id>
+    </mitre>
+    <group>execution,linux</group>
+  </rule>
+
+  <!-- ===========================================================
+       PROCESS TAMPERING — Injection de processus
+       MITRE T1055 — Process Injection
+       =========================================================== -->
+  <rule id="100090" level="13">
+    <if_group>sysmon_event25</if_group>
+    <description>Tampering de processus détecté : $(win.eventdata.image) — injection possible</description>
+    <mitre>
+      <id>T1055</id>
+    </mitre>
+    <group>defense_evasion,privilege_escalation,injection</group>
+  </rule>
+
+</group>

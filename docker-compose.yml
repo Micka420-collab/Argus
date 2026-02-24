@@ -1,0 +1,327 @@
+version: "3.9"
+
+# ============================================================
+# SOC Platform — Stack complète
+# Cible : Ubuntu 22.04 sur Proxmox
+#
+# SÉCURITÉ : seuls les ports 80 et 443 sont exposés sur l'hôte.
+# Tous les services internes (OpenSearch, Redis, API...) restent
+# dans le réseau Docker privé soc-net (172.20.0.0/24).
+# ============================================================
+
+services:
+
+  # ----------------------------------------------------------
+  # Wazuh Manager (SIEM + HIDS)
+  # ----------------------------------------------------------
+  wazuh-manager:
+    image: wazuh/wazuh-manager:4.7.3
+    hostname: wazuh-manager
+    restart: unless-stopped
+    ports:
+      - "1514:1514/udp"   # Agents — à restreindre par UFW au sous-réseau des endpoints
+      - "1515:1515"        # Enrollment agents TLS
+      # 55000 (API Wazuh) : interne uniquement, pas exposé sur l'hôte
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+          cpus: "2.0"
+    volumes:
+      - wazuh_etc:/var/ossec/etc
+      - wazuh_logs:/var/ossec/logs
+      - wazuh_data:/var/ossec/data
+      - wazuh_queue:/var/ossec/queue
+      - ./wazuh/rules:/var/ossec/etc/rules:ro
+      - ./wazuh/lists:/var/ossec/etc/lists
+    environment:
+      INDEXER_URL: https://opensearch:9200
+      INDEXER_USERNAME: admin
+      INDEXER_PASSWORD: ${OPENSEARCH_PASSWORD}
+      WAZUH_API_USER: ${WAZUH_API_USER:-wazuh-wui}
+      WAZUH_API_PASSWORD: ${WAZUH_API_PASSWORD}
+    networks:
+      - soc-net
+    healthcheck:
+      test: ["CMD", "/var/ossec/bin/wazuh-control", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ----------------------------------------------------------
+  # OpenSearch (stockage logs + recherche)
+  # Ports 9200/9300 : internes uniquement, NE PAS exposer sur l'hôte
+  # ----------------------------------------------------------
+  opensearch:
+    image: opensearchproject/opensearch:2.11.0
+    hostname: opensearch
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 4g
+          cpus: "2.0"
+    environment:
+      cluster.name: soc-cluster
+      node.name: opensearch-node1
+      discovery.type: single-node
+      OPENSEARCH_JAVA_OPTS: "-Xms2g -Xmx2g"
+      DISABLE_SECURITY_PLUGIN: "false"
+      OPENSEARCH_INITIAL_ADMIN_PASSWORD: ${OPENSEARCH_PASSWORD}
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+    # Pas de ports exposés sur l'hôte — accès via soc-net uniquement
+    networks:
+      - soc-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sk https://localhost:9200 -u admin:${OPENSEARCH_PASSWORD} | grep -q 'cluster_name'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # ----------------------------------------------------------
+  # Wazuh Dashboard (interface graphique Wazuh)
+  # Accessible via Nginx : https://votre-soc/wazuh-dashboard/
+  # ----------------------------------------------------------
+  wazuh-dashboard:
+    image: wazuh/wazuh-dashboard:4.7.3
+    hostname: wazuh-dashboard
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+          cpus: "1.0"
+    # Port 5601 interne uniquement — proxyfié via Nginx si besoin
+    environment:
+      INDEXER_USERNAME: admin
+      INDEXER_PASSWORD: ${OPENSEARCH_PASSWORD}
+      WAZUH_API_URL: https://wazuh-manager:55000
+      DASHBOARD_USERNAME: ${DASHBOARD_USERNAME:-kibanaserver}
+      DASHBOARD_PASSWORD: ${DASHBOARD_PASSWORD}
+    depends_on:
+      opensearch:
+        condition: service_healthy
+      wazuh-manager:
+        condition: service_healthy
+    networks:
+      - soc-net
+
+  # ----------------------------------------------------------
+  # Logstash (enrichissement et normalisation)
+  # ----------------------------------------------------------
+  logstash:
+    image: opensearchproject/logstash-oss-with-opensearch-output-plugin:8.9.0
+    hostname: logstash
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+          cpus: "1.5"
+    volumes:
+      - ./logstash/pipeline.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+    environment:
+      LS_JAVA_OPTS: "-Xmx1g -Xms1g"
+      OPENSEARCH_PASSWORD: ${OPENSEARCH_PASSWORD}
+    depends_on:
+      opensearch:
+        condition: service_healthy
+    networks:
+      - soc-net
+
+  # ----------------------------------------------------------
+  # SOC API Backend (FastAPI)
+  # Port 8000 : interne uniquement, proxyfié par Nginx
+  # ----------------------------------------------------------
+  soc-api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    hostname: soc-api
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+          cpus: "1.5"
+    # Pas de ports exposés — Nginx proxyfie vers soc-api:8000
+    environment:
+      # OpenSearch
+      OPENSEARCH_URL: https://opensearch:9200
+      OPENSEARCH_USER: admin
+      OPENSEARCH_PASSWORD: ${OPENSEARCH_PASSWORD}
+      # Wazuh
+      WAZUH_API_URL: https://wazuh-manager:55000
+      WAZUH_API_USER: ${WAZUH_API_USER:-wazuh-wui}
+      WAZUH_API_PASSWORD: ${WAZUH_API_PASSWORD}
+      # Notifications
+      PUSHOVER_TOKEN: ${PUSHOVER_TOKEN:-}
+      PUSHOVER_USER: ${PUSHOVER_USER:-}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+      DISCORD_WEBHOOK: ${DISCORD_WEBHOOK:-}
+      # Threat Intel
+      ABUSEIPDB_KEY: ${ABUSEIPDB_KEY:-}
+      VIRUSTOTAL_KEY: ${VIRUSTOTAL_KEY:-}
+      MISP_URL: ${MISP_URL:-}
+      MISP_KEY: ${MISP_KEY:-}
+      # App
+      SECRET_KEY: ${SECRET_KEY}
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      # Redis
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+    depends_on:
+      opensearch:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - soc-net
+    volumes:
+      - ./wazuh/lists:/var/ossec/etc/lists  # Pour les playbooks (block IP)
+
+  # ----------------------------------------------------------
+  # SOC Frontend (React compilé servi par Nginx)
+  # Interne uniquement — proxyfié par le Nginx de la stack
+  # ----------------------------------------------------------
+  soc-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    hostname: soc-frontend
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+          cpus: "0.5"
+    depends_on:
+      - soc-api
+    networks:
+      - soc-net
+
+  # ----------------------------------------------------------
+  # Suricata (IDS réseau — network_mode: host obligatoire)
+  # ----------------------------------------------------------
+  suricata:
+    image: jasonish/suricata:latest
+    hostname: suricata
+    restart: unless-stopped
+    network_mode: host          # Accès direct aux interfaces réseau
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+      - SYS_NICE
+    command: -i ${NETWORK_INTERFACE:-eth0} --af-packet -v
+    volumes:
+      - ./suricata/suricata.yaml:/etc/suricata/suricata.yaml:ro
+      - suricata_logs:/var/log/suricata
+      - suricata_rules:/var/lib/suricata/rules
+
+  # ----------------------------------------------------------
+  # Suricata Update (mise à jour des règles)
+  # ----------------------------------------------------------
+  suricata-update:
+    image: jasonish/suricata:latest
+    entrypoint: >
+      sh -c "suricata-update &&
+             cp /var/lib/suricata/rules/suricata.rules /output/suricata.rules &&
+             echo 'Règles mises à jour'"
+    volumes:
+      - suricata_rules:/var/lib/suricata/rules
+      - suricata_rules:/output
+    profiles:
+      - update  # Lance avec: docker compose --profile update run suricata-update
+
+  # ----------------------------------------------------------
+  # Redis (cache enrichissement + dedup + sessions + investigation)
+  # ----------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    hostname: redis
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 768m
+          cpus: "0.5"
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD}
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --save 60 1000
+      --appendonly no
+    volumes:
+      - redis_data:/data
+    networks:
+      - soc-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ----------------------------------------------------------
+  # Nginx (Point d'entrée unique — seuls 80/443 exposés)
+  # ----------------------------------------------------------
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    hostname: nginx
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+          cpus: "0.5"
+    ports:
+      - "80:80"     # Redirect HTTP → HTTPS
+      - "443:443"   # HTTPS TLS 1.2/1.3
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      - soc-api
+      - soc-frontend
+    networks:
+      - soc-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sk https://localhost/health | grep -q ok || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ----------------------------------------------------------
+  # MISP (Threat Intelligence Platform) — optionnel
+  # ----------------------------------------------------------
+  # misp:
+  #   image: ghcr.io/misp/misp-docker/misp-core:latest
+  #   networks: [soc-net]
+  #   Décommenter si tu veux héberger MISP localement
+
+networks:
+  soc-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+
+volumes:
+  wazuh_etc:
+  wazuh_logs:
+  wazuh_data:
+  wazuh_queue:
+  opensearch_data:
+  suricata_logs:
+  suricata_rules:
+  redis_data:

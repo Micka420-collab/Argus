@@ -1,0 +1,89 @@
+# ============================================================
+# SOC Platform — .gitignore
+# ============================================================
+
+# === Secrets et configuration sensible ===
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.crt
+*.p12
+secrets/
+
+# === Python ===
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# === Node / React ===
+node_modules/
+frontend/build/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+frontend/.env.production
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# === Docker volumes (données runtime) ===
+volumes/
+data/
+opensearch-data/
+wazuh-data/
+logstash-data/
+
+# === Logs ===
+*.log
+logs/
+*.log.*
+
+# === Documentation générée (garder les .docx source) ===
+*.docx
+!docs/*.docx
+
+# === OS ===
+.DS_Store
+Thumbs.db
+desktop.ini
+*~
+
+# === IDE ===
+.vscode/
+.idea/
+*.swp
+*.swo
+.project
+.classpath
+
+# === Wazuh ===
+wazuh/etc/ssl/
+wazuh/var/ossec/queue/
+wazuh/var/ossec/logs/
+
+# === Certificats TLS ===
+nginx/certs/*.crt
+nginx/certs/*.key
+nginx/certs/*.pem
+nginx/certs/*.csr
+nginx/certs/*.srl
+!nginx/certs/.gitkeep
+
+# === Scripts de génération de docs ===
+gen_doc*.js

@@ -1,0 +1,113 @@
+Oui, globalement je suis d’accord avec ce que “l’IA de Delos” propose : ce sont des améliorations très classiques et utiles (réduction des faux positifs, ajout de contexte parent, couverture Windows équivalente à Linux, maintien via lists, LOLBins type certutil/bitsadmin).
+
+Et ton code de base est déjà solide : tu couvres bien LSASS, PowerShell, persistance (scheduled tasks / Run keys / services), bruteforce, DLL hijacking, ransomware (extensions + VSS), outils creds (mimikatz), DNS C2, threat-intel IP, Linux privesc, process tampering.
+
+Cela dit, je vois quelques points à corriger / durcir pour éviter les faux positifs et les erreurs de logique Wazuh.
+
+FR — Ce que j’en pense + améliorations concrètes
+1) Règle 100002 PowerShell encodé : bonne, mais trop “large”
+
+Ta regex détecte bien -enc/-encodedcommand, mais elle va taper plein de scripts légitimes (admin, SCCM, outils IT, etc.).
+
+✅ Amélioration : garder -EncodedCommand ET exiger un indice de malice optionnel (iex/http/base64…), ou baisser le niveau et créer une règle “enfant” plus sévère quand il y a iex/http.
+
+Exemple (concept) :
+
+100002 (level 6–8) : encodedcommand seulement
+
+100202 (level 12–13) : encodedcommand + (iex|http|downloadstring|frombase64string)
+
+Ça réduit énormément le bruit.
+
+2) Règle 100003 “download cradle” : risque de faux positifs élevé
+
+webclient, downloadfile, bitstransfer peuvent être légitimes (scripts internes).
+✅ Ajoute du contexte :
+
+parent process suspect (wscript/cscript/svchost/dllhost)
+
+OU destination réseau (http/https)
+
+OU exécution depuis chemins suspects (Temp/AppData/Downloads)
+
+3) Règle 100012 “Services Windows créés” : probable incohérence
+
+Tu as :
+
+<if_sid>7040</if_sid>
+<field name="win.system.eventID">7045</field>
+
+7045 = “A service was installed…” (System log / Service Control Manager)
+
+7040 = changement de type de démarrage (pas la même chose)
+
+✅ Soit tu fais une règle basée uniquement sur eventID 7045, soit tu relies à un sid existant qui matche déjà 7045. Là, mélanger if_sid 7040 + eventID 7045 peut empêcher la règle de matcher comme tu crois.
+
+4) Règle 100001 LSASS : très bonne, mais pense au bruit “EDR/AV”
+
+Les EDR/AV font parfois des accès LSASS (légitimes).
+✅ Options :
+
+exclure certains sourceImage connus (EDR, antivirus)
+
+ou abaisser le level et augmenter si sourceImage est inhabituel (Temp/AppData) ou non signé.
+
+5) Règle 100060 DNS C2 : attention à la regex et aux TLD “cheap”
+
+Ta regex vise :
+
+TLDs souvent abusés (.tk .ml .ga .cf etc)
+
+ou sous-domaines très longs (DGA / exfil)
+
+✅ Amélioration : ajouter un seuil de fréquence (ex : X requêtes en 60s) ou “same_source_ip”/“same_field computer”, sinon tu vas avoir des alertes sur du tracking/CDN parfois.
+
+6) Ransomware 100040 : très utile, mais “frequency/timeframe” dépend du volume
+
+frequency="20" timeframe="30" peut être trop sensible sur serveurs fichiers (beaucoup de créations).
+✅ Option : ajouter same_field (computer) + éventuellement same_field image pour éviter d’agréger sur toute la flotte.
+
+7) Linux 100081 “/etc/passwd / shadow / sudoers” : vérifie tes SIDs
+
+<if_sid>550,551,554</if_sid> dépend de ton décodage/auditd.
+✅ Assure-toi que ces SIDs correspondent bien à “file modified” chez toi (sinon, la règle ne matchera jamais). wazuh-logtest va vite te le dire.
+
+8) XML / encodage : je vois des espaces “bizarres”
+
+Dans ton dump, il y a des group name / rule id avec des espaces insécables (NBSP).
+✅ Ça peut casser le parsing XML selon comment tu l’as copié/collé. Assure-toi que le fichier contient des espaces normaux.
+
+Ce que Delos propose et que je garderais à 100%
+
+✅ Ajouter parentImage (explorer.exe/msiexec.exe vs wscript/svchost) = énorme gain de précision.
+
+✅ Équivalent Windows pour /tmp (Temp/AppData/LocalLow) = très utile.
+
+✅ Liste externe pour outils connus = maintenance beaucoup plus propre.
+
+✅ bitsadmin/certutil = indispensable (LOLBins).
+
+Petit bémol : la “compression pré-ransomware” est une bonne idée, mais l’ID MITRE proposé par Delos (T1566) n’est pas le bon : l’archivage/exfil est plutôt côté collection/exfiltration (ex. archive collected data / exfiltration over web service). Mais l’idée de détection “création massive d’archives” reste valide.
+
+EN — My take on your base rules + concrete improvements
+Overall
+
+I agree with Delos’ suggestions. Your baseline rule pack is already strong (LSASS, PowerShell, persistence, brute force, DLL hijacking, ransomware patterns + VSS deletion, creds tools, DNS C2, TI IPs, Linux privesc, process tampering). The main thing now is precision: reduce false positives and add context (parent process, path, network indicators, frequency scoping).
+
+Key fixes / hardening
+
+100002 Encoded PowerShell is good but too broad → split into a low/medium rule for -EncodedCommand and a high-severity child rule when combined with iex/http/base64/downloadstring.
+
+100003 Download cradle will be noisy → add parent/path/network context.
+
+100012 Services created likely has logic mismatch (if_sid 7040 vs eventID 7045) → align the rule to the correct event/source.
+
+100001 LSASS access may alert on EDR/AV → add allowlist for known security tools or increase severity only when the source image is unusual / unsigned / from suspicious paths.
+
+100060 DNS C2 can be noisy → add frequency thresholds or scope per host/source IP.
+
+100040 Ransomware mass extensions → consider scoping aggregation by host + process to avoid cross-fleet aggregation.
+
+Linux file modification SIDs → validate that those SIDs match your decoders.
+
+Watch out for NBSP (non-breaking spaces) in the XML copy/paste; it can break parsing.

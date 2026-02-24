@@ -1,0 +1,41 @@
+# ============================================================
+# SOC Platform — Dépendances Python
+# Installation : pip install -r requirements.txt
+# ============================================================
+
+# Framework web
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+python-multipart==0.0.7
+
+# Validation et sérialisation
+pydantic==2.5.3
+pydantic-settings==2.1.0
+email-validator==2.1.0
+
+# Base de données / Cache
+redis==5.0.1
+
+# HTTP client async
+httpx==0.26.0
+
+# OpenSearch
+opensearch-py==2.4.2
+
+# Tâches planifiées
+apscheduler==3.10.4
+
+# Sécurité
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+cryptography==41.0.8
+
+# Utilitaires
+python-dotenv==1.0.0
+orjson==3.9.10         # JSON ultra rapide
+structlog==24.1.0      # Logging structuré
+
+# Tests
+pytest==7.4.4
+pytest-asyncio==0.23.3
+# httpx déjà déclaré ci-dessus (utilisé aussi pour les tests FastAPI)
