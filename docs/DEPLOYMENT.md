@@ -152,10 +152,22 @@ curl -sk https://localhost/api/v1/status   # état OpenSearch / Redis / alert en
 docker compose logs -f soc-api             # logs API
 ```
 
-## Sauvegarde
+## Sauvegarde & restauration
 
-Volumes à sauvegarder : `opensearch_data` (données), `wazuh_etc`/`wazuh_data`,
-`redis_data`, `pqc_keys` (clés JWT PQC). Plus `.env` et `nginx/certs/` (hors Git).
+Scripts fournis (sauvegardent les volumes Docker + `.env` + certificats via un
+conteneur jetable, sans dépendance hôte) :
+
+```bash
+./backup.sh                          # → backups/argus-<horodatage>/
+./restore.sh backups/argus-<horodatage>
+```
+Windows : `.\backup.ps1` / `.\restore.ps1 <dossier>`.
+
+`backup.sh` propose d'arrêter la stack le temps de la copie (cohérence OpenSearch).
+Volumes couverts : `opensearch_data`, `wazuh_etc`/`wazuh_data`/`wazuh_queue`,
+`redis_data`, `pqc_keys`, `suricata_rules`. La sauvegarde contient des **secrets**
+(`.env`, clés, certificats) — à stocker de façon sécurisée et hors-site.
+Automatisable via cron : `0 3 * * * cd /opt/Argus && ARGUS_YES=1 ./backup.sh`.
 
 ## Mise à jour
 

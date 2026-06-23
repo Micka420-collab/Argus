@@ -109,13 +109,18 @@ docker compose up -d
 
 Dashboard : `https://localhost` · présentation publique : `https://localhost/welcome`
 
-### 🔄 Mise à jour & 🗑️ Désinstallation
+### 🔄 Maintenance (mise à jour · sauvegarde · désinstallation)
 
 ```bash
-./update.sh        # met à jour (git pull + rebuild + restart), préserve données & secrets
-./uninstall.sh     # arrête la stack ; propose de supprimer données/images
+./update.sh                 # git pull + rebuild + restart (préserve données & secrets)
+./backup.sh                 # sauvegarde volumes + .env + certs → backups/argus-<date>/
+./restore.sh backups/argus-<date>   # restaure une sauvegarde (écrase les données)
+./uninstall.sh              # arrête la stack ; propose de supprimer données/images
 ```
-Windows : `.\update.ps1` · `.\uninstall.ps1`.
+Windows : `.\update.ps1` · `.\backup.ps1` · `.\restore.ps1 <dossier>` · `.\uninstall.ps1`.
+
+> 💾 La sauvegarde couvre OpenSearch (alertes, investigations IA, VDP, exposition),
+> Wazuh, Redis (comptes), les clés JWT PQC, le `.env` et les certificats.
 
 ### Activer l'analyste IA (optionnel)
 
