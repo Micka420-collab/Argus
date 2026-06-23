@@ -99,6 +99,15 @@ elif have docker-compose;              then COMPOSE="docker-compose"
 else die "Docker Compose v2 requis (plugin 'docker compose')."; fi
 ok "Docker + Compose détectés."
 
+# Garde-fou espace disque (images + build + éventuel modèle Ollama)
+FREE_GB="$(df -PBG / 2>/dev/null | awk 'NR==2{gsub(/[A-Za-z]/,"",$4); print $4+0}')"
+FREE_GB="${FREE_GB:-999}"
+info "Espace disque libre : ${FREE_GB} Go"
+if [ "$FREE_GB" -lt 15 ]; then
+  warn "Disque faible (${FREE_GB} Go). Recommandé : >=15 Go sans IA, >=35 Go avec Ollama."
+  ask_yn "Continuer quand même ?" "n" || die "Libère de l'espace (docker system prune -af) ou agrandis le disque, puis relance."
+fi
+
 # OpenSearch exige vm.max_map_count >= 262144 (Linux)
 if [ "$(uname -s)" = "Linux" ]; then
   cur="$(cat /proc/sys/vm/max_map_count 2>/dev/null || echo 0)"
@@ -139,8 +148,12 @@ if [ ! -f .env ]; then
   ADMIN_USER="$(ask "Identifiant administrateur"       "admin")"
 
   LLM_PROVIDER="none"
-  if ask_yn "Activer l'analyste IA local (Ollama) ? (~8 Go RAM)" "n"; then
-    LLM_PROVIDER="ollama"; LLM_MODEL="$(ask "Modèle Ollama" "qwen2.5:7b")"
+  if ask_yn "Activer l'analyste IA local (Ollama) ? (~8 Go RAM + ~6 Go disque)" "n"; then
+    if [ "${FREE_GB:-999}" -lt 30 ] && ! ask_yn "  Seulement ${FREE_GB:-?} Go libres — activer Ollama malgré le risque de disque plein ?" "n"; then
+      warn "Ollama non activé (espace insuffisant) — IA en mode heuristique (fonctionne très bien)."
+    else
+      LLM_PROVIDER="ollama"; LLM_MODEL="$(ask "Modèle Ollama" "qwen2.5:7b")"
+    fi
   fi
   PQC_JWT="false"; ask_yn "Activer les jetons post-quantiques (JWT Ed25519) ?" "n" && PQC_JWT="true"
   OSINT_ANON="false"; ENABLE_ANON="n"
