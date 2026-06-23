@@ -204,6 +204,20 @@ else
   ENABLE_ANON="$(grep -qE '^OSINT_ANON=true' .env && echo y || echo n)"
 fi
 
+# ---- Identifiants : sauvegarde + affichage (avant le build, au cas où) ------
+CREDS_FILE="$(pwd)/argus-credentials.txt"
+{
+  echo "Argus — identifiants de connexion"
+  echo "Console      : https://${DOMAIN:-soc.lan}  (ou https://<IP-de-la-VM>)"
+  echo "Identifiant  : ${ADMIN_USER:-admin}"
+  echo "Mot de passe : ${ADMIN_PASSWORD:-voir .env}"
+} > "$CREDS_FILE" 2>/dev/null || true
+chmod 600 "$CREDS_FILE" 2>/dev/null || true
+printf "\n${C_GREEN}${C_B}── Identifiants de connexion ──${C_RESET}\n"
+printf "  Identifiant  : ${C_B}%s${C_RESET}\n"   "${ADMIN_USER:-admin}"
+printf "  Mot de passe : ${C_B}%s${C_RESET}\n"   "${ADMIN_PASSWORD:-voir .env}"
+printf "  ${C_DIM}Sauvegardés dans %s${C_RESET}\n\n" "$CREDS_FILE"
+
 # ---- 4. Certificat TLS -----------------------------------------------------
 mkdir -p nginx/certs
 if [ ! -f nginx/certs/soc.crt ] || [ ! -f nginx/certs/soc.key ]; then
@@ -248,6 +262,7 @@ printf "  ${C_B}Console${C_RESET}      : https://%s  (ou https://localhost)\n" "
 printf "  ${C_B}Présentation${C_RESET} : https://localhost/welcome\n"
 printf "  ${C_B}Identifiant${C_RESET}  : %s\n" "${ADMIN_USER:-admin}"
 printf "  ${C_B}Mot de passe${C_RESET} : %s\n" "${ADMIN_PASSWORD:-voir .env}"
+printf "  ${C_DIM}(aussi sauvegardés dans %s)${C_RESET}\n" "${CREDS_FILE:-argus-credentials.txt}"
 printf "\n"
 warn "Le certificat est auto-signé : votre navigateur affichera un avertissement (normal en local)."
 printf "${C_DIM}  État des services : %s ps${C_RESET}\n" "$COMPOSE"

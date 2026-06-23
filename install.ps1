@@ -106,6 +106,21 @@ if (-not (Test-Path ".env")) {
   $EnableAnon = ((Cfg "OSINT_ANON") -eq "true")
 }
 
+# Identifiants : sauvegarde + affichage (avant le build, au cas ou)
+$credsFile = Join-Path (Get-Location) "argus-credentials.txt"
+@(
+  "Argus - identifiants de connexion",
+  "Console      : https://$Domain  (ou https://<IP-de-la-VM>)",
+  "Identifiant  : $AdminUser",
+  "Mot de passe : $AdminPass"
+) -join "`n" | Set-Content -Encoding UTF8 $credsFile
+Write-Host ""
+Write-Host "-- Identifiants de connexion --" -ForegroundColor Green
+Write-Host "  Identifiant  : $AdminUser"
+Write-Host "  Mot de passe : $AdminPass"
+Write-Host "  Sauvegardes dans $credsFile" -ForegroundColor DarkGray
+Write-Host ""
+
 # 4. Certificat TLS (via conteneur, pas besoin d'OpenSSL local)
 New-Item -ItemType Directory -Force nginx\certs | Out-Null
 if (-not (Test-Path "nginx\certs\soc.crt")) {
@@ -143,6 +158,7 @@ Write-Host "  Console      : https://$Domain  (ou https://localhost)"
 Write-Host "  Presentation : https://localhost/welcome"
 Write-Host "  Identifiant  : $AdminUser"
 Write-Host "  Mot de passe : $AdminPass"
+Write-Host "  (aussi sauvegardes dans $credsFile)" -ForegroundColor DarkGray
 Write-Host ""
 Warn "Certificat auto-signe : avertissement navigateur normal en local."
 Write-Host "  Etat : docker compose ps  |  Logs : docker compose logs -f soc-api  |  Arret : docker compose down" -ForegroundColor DarkGray
