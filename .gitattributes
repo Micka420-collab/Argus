@@ -1,0 +1,18 @@
+# Normalise les fins de ligne — évite la corruption CRLF (dev Windows → conteneurs Linux)
+* text=auto eol=lf
+
+# Scripts exécutés dans des conteneurs Linux : TOUJOURS en LF
+*.sh    text eol=lf
+*.py    text eol=lf
+*.conf  text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+Dockerfile text eol=lf
+
+# Fichiers binaires (pas de conversion)
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.ico  binary
+*.docx binary
+*.pdf  binary
