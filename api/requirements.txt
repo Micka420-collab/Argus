@@ -33,7 +33,7 @@ apscheduler==3.10.4
 # Sécurité
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
-cryptography==41.0.8
+cryptography==42.0.8
 # JWT post-quantique : Ed25519 utilise `cryptography` (ci-dessus, toujours présent).
 # ML-DSA (FIPS 204) est optionnel et nécessite la lib native liboqs ; sans elle,
 # le JWT reste Ed25519. Décommenter pour activer le volet ML-DSA :
