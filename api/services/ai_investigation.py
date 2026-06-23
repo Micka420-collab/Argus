@@ -345,6 +345,18 @@ class AiInvestigationAgent:
         except Exception as e:
             logger.debug("Escalade notification impossible (%s)", e)
 
+        # Webhook sortant (sync tickets — n8n/Slack/Jira)
+        try:
+            from api.services.webhooks import emit
+            v = state.get("verdict", {})
+            await emit("ai_verdict", {
+                "id": state["id"], "ip": state.get("ip", ""), "decision": decision,
+                "score": v.get("score", 0), "confidence": v.get("confidence", 0),
+                "summary": (state.get("ai") or {}).get("summary", ""),
+            })
+        except Exception as e:
+            logger.debug("Webhook escalade impossible (%s)", e)
+
 
 # ---------------------------------------------------------------------------
 # Accès aux rapports persistés (pour le router)

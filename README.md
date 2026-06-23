@@ -207,9 +207,10 @@ Détail complet dans [`docs/UPGRADE_ROADMAP.md`](docs/UPGRADE_ROADMAP.md).
   **module VDP/Bug-Bounty (triage assisté + CVSS v3.1 + récompenses)**,
   **ASM/CTEM (priorisation CVSS × EPSS × KEV × valeur métier)**, refonte UI complète + landing.
 - **✅ Aussi livré** — passerelle **anon-gateway** (Tor SOCKS + rotation NEWNYM) +
-  scaffolding **mesh WireGuard+Rosenpass (PQC)**.
+  scaffolding **mesh WireGuard+Rosenpass (PQC)** ; **webhooks sortants / sync tickets
+  (n8n/Slack/Jira)** signés HMAC sur verdict IA, VDP accepté, finding KEV ; **CI GitHub Actions**.
 - **🚧 Phase 2/3** — déploiement du mesh WireGuard+Rosenpass (pairs/clés par site),
-  scan actif ASM (nuclei/httpx), sync tickets (n8n), PKI mTLS interne.
+  scan actif ASM (nuclei/httpx), PKI mTLS interne.
 
 ---
 

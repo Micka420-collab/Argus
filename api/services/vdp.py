@@ -272,6 +272,17 @@ async def transition(report_id: str, new_status: str, actor: str, note: str = ""
         await client.index(index=REPORTS_INDEX, id=report_id, body=raw, refresh=True)
     except Exception as e:
         logger.warning("transition: persistance impossible (%s)", e)
+
+    if new_status == ReportStatus.ACCEPTED:
+        try:
+            from api.services.webhooks import emit
+            await emit("vdp_accepted", {
+                "id": report_id, "title": raw.get("title", ""),
+                "severity": raw.get("severity", ""), "cvss": raw.get("cvss_score", 0),
+                "reward": raw.get("reward_suggested", 0), "researcher": raw.get("researcher", ""),
+            })
+        except Exception as e:
+            logger.debug("Webhook VDP impossible (%s)", e)
     return raw
 
 

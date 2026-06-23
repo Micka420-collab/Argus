@@ -82,6 +82,16 @@ l'environnement (ou un fichier `.env`). Modèle : [`.env.example`](../.env.examp
 | `OUTBOUND_PROXY` | — | ex. `socks5://anon-gateway:9050` (nécessite `httpx[socks]`). |
 | `TOR_CONTROL_URL` | — | Endpoint HTTP de rotation d'identité (NEWNYM). |
 
+## Webhooks (sync tickets)
+
+| Variable | Défaut | Description |
+|---|---|---|
+| `WEBHOOK_URL` | — | URL recevant les events (n8n/Slack/Jira). ex. `http://n8n:5678/webhook/argus`. |
+| `WEBHOOK_SECRET` | — | Signe chaque event en `X-Argus-Signature: sha256=…` (HMAC). |
+
+Events émis : `ai_verdict` (verdict IA), `vdp_accepted` (rapport VDP accepté),
+`exposure_kev` (finding activement exploité KEV).
+
 ## Post-quantique (pilier CryptoNext)
 
 | Variable | Défaut | Description |

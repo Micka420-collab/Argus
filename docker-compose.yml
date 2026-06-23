@@ -189,6 +189,9 @@ services:
       # Égress anonymisé OSINT (pilier Snowpack)
       OUTBOUND_PROXY: ${OUTBOUND_PROXY:-}
       OSINT_ANON: ${OSINT_ANON:-false}
+      # Webhooks sortants (sync tickets — n8n/Slack/Jira)
+      WEBHOOK_URL: ${WEBHOOK_URL:-}
+      WEBHOOK_SECRET: ${WEBHOOK_SECRET:-}
       # Posture post-quantique (pilier CryptoNext)
       PQC_JWT: ${PQC_JWT:-false}
       PQC_KEYS_DIR: /var/lib/argus/pqc
@@ -342,6 +345,34 @@ services:
       - soc-net
 
   # ----------------------------------------------------------
+  # n8n (orchestration / sync tickets — reçoit les webhooks Argus)
+  # Optionnel : profil "n8n".  docker compose --profile n8n up -d
+  # Configurez ensuite WEBHOOK_URL=http://n8n:5678/webhook/<votre-workflow>
+  # ----------------------------------------------------------
+  n8n:
+    image: n8nio/n8n:latest
+    hostname: n8n
+    restart: unless-stopped
+    profiles:
+      - n8n
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: "0.5"
+    environment:
+      N8N_HOST: n8n
+      N8N_PORT: "5678"
+      N8N_PROTOCOL: http
+      GENERIC_TIMEZONE: UTC
+      N8N_DIAGNOSTICS_ENABLED: "false"
+    volumes:
+      - n8n_data:/home/node/.n8n
+    # Pas de port exposé sur l'hôte — proxyfiable via Nginx si besoin
+    networks:
+      - soc-net
+
+  # ----------------------------------------------------------
   # Nginx (Point d'entrée unique — seuls 80/443 exposés)
   # ----------------------------------------------------------
   nginx:
@@ -398,3 +429,4 @@ volumes:
   redis_data:
   ollama_models:
   pqc_keys:
+  n8n_data:

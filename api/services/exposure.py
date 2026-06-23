@@ -196,6 +196,17 @@ async def add_finding(payload: FindingCreate) -> Finding:
         await client.index(index=FINDINGS_INDEX, id=finding.id, body=finding.model_dump(), refresh=True)
     except Exception as e:
         logger.warning("add_finding: persistance impossible (%s)", e)
+
+    if finding.in_kev:
+        try:
+            from api.services.webhooks import emit
+            await emit("exposure_kev", {
+                "id": finding.id, "asset": finding.asset, "cve": finding.cve,
+                "title": finding.title, "priority": finding.priority_score,
+                "tier": finding.priority_tier,
+            })
+        except Exception as e:
+            logger.debug("Webhook exposition impossible (%s)", e)
     return finding
 
 

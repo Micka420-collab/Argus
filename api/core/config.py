@@ -98,6 +98,12 @@ class Settings(BaseSettings):
     TOR_CONTROL_URL: Optional[str] = None  # endpoint HTTP NEWNYM (rotation IP)
 
     # ----------------------------------------------------------
+    # Webhooks sortants (sync tickets — n8n / Slack / Jira…)
+    # ----------------------------------------------------------
+    WEBHOOK_URL: Optional[str] = None      # ex. http://n8n:5678/webhook/argus
+    WEBHOOK_SECRET: Optional[str] = None   # signe les events (HMAC-SHA256)
+
+    # ----------------------------------------------------------
     # Posture post-quantique (pilier CryptoNext)
     # ----------------------------------------------------------
     JWT_ALGORITHM: str = "HS256"
