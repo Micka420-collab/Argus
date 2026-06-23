@@ -5,7 +5,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Optional, List, Any
 
-from opensearchpy import AsyncOpenSearch, RequestsHttpConnection
+from opensearchpy import AsyncOpenSearch
 from opensearchpy.exceptions import NotFoundError
 
 from api.core.config import settings
@@ -33,7 +33,7 @@ class OpenSearchClient:
                 use_ssl=True,
                 verify_certs=False,  # Désactiver en prod avec certificat valide
                 ssl_show_warn=False,
-                connection_class=RequestsHttpConnection,
+                # Connexion asynchrone (aiohttp) par défaut — compatible AsyncOpenSearch
                 timeout=30,
                 max_retries=3,
                 retry_on_timeout=True,

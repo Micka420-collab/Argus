@@ -24,8 +24,8 @@ httpx[socks]==0.26.0
 # LLM_PROVIDER=claude. La plateforme fonctionne sans (repli heuristique).
 anthropic==0.40.0
 
-# OpenSearch
-opensearch-py==2.4.2
+# OpenSearch (extra [async] = client AsyncOpenSearch via aiohttp)
+opensearch-py[async]==2.4.2
 
 # Tâches planifiées
 apscheduler==3.10.4
