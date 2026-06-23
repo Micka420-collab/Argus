@@ -1,0 +1,95 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ----------------------------------------------------------
+  # Backend — compile, import graph, lint
+  # ----------------------------------------------------------
+  backend:
+    name: Backend (FastAPI)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: api/requirements.txt
+      - name: Installer les dépendances
+        run: pip install -r api/requirements.txt
+      - name: Compiler tout le code
+        run: python -m compileall -q api
+      - name: Smoke import (graphe complet)
+        run: python -c "import api.main; print('import OK')"
+      - name: Lint (ruff, non bloquant)
+        continue-on-error: true
+        run: |
+          pip install ruff
+          ruff check api --output-format=github
+
+  # ----------------------------------------------------------
+  # Frontend — build de production CRA
+  # ----------------------------------------------------------
+  frontend:
+    name: Frontend (React)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Installer les dépendances
+        run: npm ci
+      - name: Build de production
+        env:
+          CI: "false"   # ne pas échouer sur les warnings ESLint bénins
+        run: npm run build
+
+  # ----------------------------------------------------------
+  # Scripts & Compose — shellcheck + validation docker-compose
+  # ----------------------------------------------------------
+  scripts:
+    name: Scripts & Compose
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: ShellCheck (informatif)
+        continue-on-error: true
+        run: shellcheck --severity=error install.sh update.sh uninstall.sh backup.sh restore.sh anon-gateway/entrypoint.sh
+      - name: Valider docker-compose.yml
+        run: |
+          cp .env.example .env
+          docker compose config -q
+          echo "docker-compose.yml valide"
+
+  # ----------------------------------------------------------
+  # Images Docker — build complet (push sur main uniquement)
+  # ----------------------------------------------------------
+  images:
+    name: Build images Docker
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Préparer .env
+        run: cp .env.example .env
+      - name: Construire les images (api, frontend, nginx, anon-gateway)
+        run: docker compose --profile anon build

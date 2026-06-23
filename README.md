@@ -6,10 +6,10 @@
 
 **Autonomous, post-quantum-ready Security Operations Center — self-hosted, open-source (non-commercial).**
 
+[![CI](https://github.com/Micka420-collab/Argus/actions/workflows/ci.yml/badge.svg)](https://github.com/Micka420-collab/Argus/actions/workflows/ci.yml)
 [![License: PolyForm NC](https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-0A0B0D)](LICENSE)
 [![Stack](https://img.shields.io/badge/stack-FastAPI%20%C2%B7%20React%20%C2%B7%20Wazuh%20%C2%B7%20Suricata-4F8DFF)]()
 [![PQC](https://img.shields.io/badge/crypto-hybrid%20ML--KEM-5EE6D3)]()
-[![Status](https://img.shields.io/badge/status-active-3FB984)]()
 
 </div>
 
