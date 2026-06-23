@@ -67,9 +67,10 @@ gen_pass() { # mot de passe fort (≥ classes requises par OpenSearch)
 if [ "$(id -u)" -ne 0 ]; then
   if have sudo; then
     info "Argus nécessite les droits administrateur — élévation via sudo…"
+    # -E est souvent refusé par sudoers ; on passe seulement ARGUS_YES explicitement.
     case "$0" in
-      */install.sh|install.sh) exec sudo -E bash "$0" "$@" ;;
-      *)                       exec sudo -E bash -c "$(curl -fsSL "$RAW_URL")" ;;
+      */install.sh|install.sh) exec sudo ARGUS_YES="$ASSUME_YES" bash "$0" "$@" ;;
+      *)                       exec sudo ARGUS_YES="$ASSUME_YES" bash -c "$(curl -fsSL "$RAW_URL")" ;;
     esac
   else
     die "Droits root requis. Relancez en root (su -) puis 'bash install.sh', ou installez sudo."
@@ -112,8 +113,14 @@ if [ "$(uname -s)" = "Linux" ]; then
   fi
 fi
 
-# ---- 2. Récupérer le dépôt -------------------------------------------------
-if [ ! -f docker-compose.yml ]; then
+# ---- 2. Récupérer le dépôt (idempotent) ------------------------------------
+if [ -f docker-compose.yml ]; then
+  : # déjà à la racine du dépôt
+elif [ -d Argus ]; then
+  info "Dépôt Argus déjà présent — réutilisation et mise à jour…"
+  cd Argus
+  git pull --ff-only 2>/dev/null || warn "git pull ignoré (modifs locales ?)."
+else
   info "Clonage du dépôt Argus…"
   have git || die "git requis pour cloner le dépôt."
   git clone --depth 1 "$REPO_URL" Argus || die "Échec du clonage."
