@@ -13,11 +13,12 @@ FROM alpine:3.20
 
 RUN apk add --no-cache \
       tor \
-      obfs4proxy \
       python3 \
       wireguard-tools \
       iptables \
       curl
+# Note : obfs4proxy (transport pluggable Tor pour réseaux censurés) n'est pas
+# requis pour l'égress anonymisé standard ; l'ajouter manuellement si besoin.
 
 # Rosenpass (PQC) est un binaire Rust optionnel : le déposer dans
 # /usr/local/bin/rosenpass (build séparé) pour activer le volet post-quantique.
