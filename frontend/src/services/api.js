@@ -172,6 +172,25 @@ export const vdpApi = {
 };
 
 // ----------------------------------------------------------
+// ASM / CTEM — surface d'exposition
+// ----------------------------------------------------------
+export const exposureApi = {
+  findings: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return request(`/exposure/findings${qs ? "?" + qs : ""}`);
+  },
+  addFinding: (data) => request("/exposure/findings", { method: "POST", body: JSON.stringify(data) }),
+  setStatus: (id, status) =>
+    request(`/exposure/findings/${encodeURIComponent(id)}/status`, {
+      method: "PATCH", body: JSON.stringify({ status }),
+    }),
+  assets: () => request("/exposure/assets"),
+  upsertAsset: (data) => request("/exposure/assets", { method: "POST", body: JSON.stringify(data) }),
+  cve: (cve) => request(`/exposure/cve/${encodeURIComponent(cve)}`),
+  stats: () => request("/exposure/stats"),
+};
+
+// ----------------------------------------------------------
 // Posture post-quantique (pilier CryptoNext)
 // ----------------------------------------------------------
 export const cryptoApi = {

@@ -111,6 +111,16 @@ ingest → enrich(OSINT) → correlate(OpenSearch, beaconing) → retrieve_feedb
 - Triage assisté : `api/services/vdp_triage.py` — détection de doublon + résumé LLM.
 - API : `api/routers/vdp.py` ; rôles `researcher` / `triager` ; UI `frontend/src/pages/Vdp.jsx`.
 
+### Extension — Gestion d'exposition (ASM / CTEM)
+
+Registre d'exposition priorisé par **exposition réelle** : `CVSS × EPSS × KEV ×
+valeur métier`. EPSS (FIRST.org) = probabilité d'exploitation ; KEV (CISA) =
+activement exploité (plancher de priorité critique). Code : `api/models/exposure.py`,
+`api/services/exposure.py` (`compute_priority`, enrichissement EPSS/KEV avec cache
+Redis), `api/routers/exposure.py` ; stockage `soc-exposure-{assets,findings}` ;
+UI `frontend/src/pages/Exposure.jsx`. Le scan actif (nuclei/httpx…) est un point
+d'intégration externe (`source="scan"`).
+
 ## Stockage
 
 | Données | Backend | Index / clé |
@@ -120,6 +130,7 @@ ingest → enrich(OSINT) → correlate(OpenSearch, beaconing) → retrieve_feedb
 | Investigations IA | OpenSearch | `soc-investigations` |
 | Feedback analyste (RAG) | OpenSearch | `soc-ai-feedback` |
 | Rapports VDP | OpenSearch | `soc-vdp-reports` (+ `-programs`) |
+| Exposition ASM/CTEM | OpenSearch | `soc-exposure-assets` / `soc-exposure-findings` |
 | Cache OSINT / dédup / maintenance | Redis | `enrich:*`, `dedup:*`, `maintenance:*`, `investigation:*` |
 | Clés ML-DSA (JWT PQC) | Volume | `PQC_KEYS_DIR` |
 

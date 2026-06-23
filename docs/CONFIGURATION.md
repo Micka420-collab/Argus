@@ -22,6 +22,7 @@ l'environnement (ou un fichier `.env`). Modèle : [`.env.example`](../.env.examp
 | `OPENSEARCH_INDEX_SURICATA` | `soc-suricata-*` | Index des événements Suricata. |
 | `OPENSEARCH_INDEX_AI` | `soc-investigations` | Rapports de l'agent IA. |
 | `OPENSEARCH_INDEX_VDP` | `soc-vdp-reports` | Rapports VDP / bug-bounty. |
+| `OPENSEARCH_INDEX_EXPOSURE` | `soc-exposure` | ASM/CTEM (assets + findings). |
 
 ## Wazuh / Redis
 

@@ -79,6 +79,21 @@ Voir [SECURITY.md](SECURITY.md).
 | `/vdp/cvss` | GET | authentifié | Calcul CVSS v3.1 (`?vector=CVSS:3.1/...`). |
 | `/vdp/stats` | GET | triager | Compteurs par statut/sévérité. |
 
+## ASM / CTEM (surface d'exposition)
+
+| Endpoint | Méthode | Rôle | Description |
+|---|---|---|---|
+| `/exposure/findings` | GET | analyst | Findings priorisés (`?tier=&status=&size=`), triés par score. |
+| `/exposure/findings` | POST | analyst | Ajouter un finding (enrichi EPSS/KEV + priorisé). |
+| `/exposure/findings/{id}/status` | PATCH | analyst | Changer le statut (open/triaged/mitigated/accepted/false_positive). |
+| `/exposure/assets` | GET/POST | analyst | Inventaire des assets exposés (valeur métier). |
+| `/exposure/cve/{cve}` | GET | analyst | Enrichissement EPSS + KEV d'un CVE. |
+| `/exposure/stats` | GET | analyst | Compteurs (total, ouverts, KEV, par tier). |
+
+Priorisation : `score = (0.5·CVSS/10 + 0.5·exploit) × valeur_métier`, où
+`exploit = 1.0 si KEV sinon EPSS` ; un finding KEV (activement exploité) reçoit un
+plancher de priorité **critique**.
+
 ## Incidents · Assets · Règles · Playbooks
 
 | Endpoint | Méthode | Description |

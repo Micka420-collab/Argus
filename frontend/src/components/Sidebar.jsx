@@ -6,7 +6,7 @@ import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
   ScanEye, LayoutDashboard, Bell, AlertTriangle, Bot, Atom, Server,
-  BookOpen, ChevronsLeft, LogOut, User, Bug,
+  BookOpen, ChevronsLeft, LogOut, User, Bug, Target,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -26,8 +26,9 @@ const GROUPS = [
   {
     title: "Exposition",
     items: [
-      { to: "/vdp",    label: "VDP / Bug-Bounty", icon: Bug },
-      { to: "/crypto", label: "Post-Quantum",     icon: Atom },
+      { to: "/exposure", label: "Surface (ASM)",    icon: Target },
+      { to: "/vdp",      label: "VDP / Bug-Bounty", icon: Bug },
+      { to: "/crypto",   label: "Post-Quantum",     icon: Atom },
     ],
   },
   {

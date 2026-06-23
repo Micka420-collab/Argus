@@ -41,6 +41,7 @@ Argus est une plateforme SOC **open-source auto-hébergeable** qui s'inspire des
 | ⚛️ **Post-Quantum** | TLS hybride **X25519MLKEM768**, scanner de readiness crypto-agility, **CBOM** (inventaire des handshakes TLS) |
 | 📡 **Temps réel** | Alertes WebSocket sécurisées (JWT) |
 | 🐛 **VDP / Bug-Bounty** | Portail de soumission, **triage assisté** (dédup + résumé IA), **scoring CVSS v3.1**, grille de récompenses, machine à états |
+| 🎯 **ASM / CTEM** | Registre d'exposition **priorisé CVSS × EPSS × KEV × valeur métier** (enrichissement FIRST EPSS + CISA KEV) |
 | 🗺️ **Détection** | Wazuh (SIEM/EDR) + Suricata (IDS/IPS) + règles MITRE ATT&CK |
 | 🔐 **Sécurité** | Auth JWT + RBAC (admin/analyst/viewer), Nginx TLS, un seul port exposé (443) |
 | 🎨 **UI « Obsidian Signal »** | Dashboard temps réel, landing de présentation, design system cohérent |
@@ -166,9 +167,10 @@ Détail complet dans [`docs/UPGRADE_ROADMAP.md`](docs/UPGRADE_ROADMAP.md).
 
 - **✅ Livré** — verdict 3 états + analyse IA, agent autonome (graphe + RAG), scanner PQC + CBOM,
   TLS hybride, **JWT hybride post-quantique (Ed25519 + ML-DSA, repli HS256)**, égress anonymisé,
-  **module VDP/Bug-Bounty (triage assisté + CVSS v3.1 + récompenses)**, refonte UI complète + landing.
-- **🚧 Phase 2/3** — mesh WireGuard+Rosenpass (plan de management sans port entrant), ASM/CTEM,
-  sync tickets (n8n), PKI mTLS interne.
+  **module VDP/Bug-Bounty (triage assisté + CVSS v3.1 + récompenses)**,
+  **ASM/CTEM (priorisation CVSS × EPSS × KEV × valeur métier)**, refonte UI complète + landing.
+- **🚧 Phase 2/3** — mesh WireGuard+Rosenpass (plan de management sans port entrant),
+  scan actif ASM (nuclei/httpx), sync tickets (n8n), PKI mTLS interne.
 
 ---
 

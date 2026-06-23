@@ -17,6 +17,7 @@ from api.routers import investigation as investigation_router
 from api.routers import crypto as crypto_router
 from api.routers import ai as ai_router
 from api.routers import vdp as vdp_router
+from api.routers import exposure as exposure_router
 from api.services.alerting import AlertEngine
 from api.services.users import ensure_default_admin
 from api.middleware.security import (
@@ -113,6 +114,7 @@ app.include_router(investigation_router.router, prefix="/api/v1/investigate", ta
 app.include_router(crypto_router.router,         prefix="/api/v1/crypto",      tags=["Post-Quantum"])
 app.include_router(ai_router.router,             prefix="/api/v1/ai",          tags=["Analyste IA"])
 app.include_router(vdp_router.router,            prefix="/api/v1/vdp",         tags=["VDP / Bug-Bounty"])
+app.include_router(exposure_router.router,       prefix="/api/v1/exposure",    tags=["ASM / CTEM"])
 
 
 # ----------------------------------------------------------
