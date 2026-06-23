@@ -1,0 +1,18 @@
+# Tor — passerelle d'anonymisation Argus (interne soc-net)
+# SOCKS exposé au réseau Docker privé ; control port en localhost uniquement.
+
+SOCKSPort 0.0.0.0:9050
+SOCKSPolicy accept 172.20.0.0/24
+SOCKSPolicy reject *
+
+# Control port : localhost du conteneur seulement (utilisé par newnym.py)
+ControlPort 127.0.0.1:9051
+CookieAuthentication 0
+
+DataDirectory /var/lib/tor
+Log notice stdout
+
+# Performance / robustesse
+CircuitBuildTimeout 30
+NewCircuitPeriod 120
+MaxCircuitDirtiness 600

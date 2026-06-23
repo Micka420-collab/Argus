@@ -169,7 +169,9 @@ Détail complet dans [`docs/UPGRADE_ROADMAP.md`](docs/UPGRADE_ROADMAP.md).
   TLS hybride, **JWT hybride post-quantique (Ed25519 + ML-DSA, repli HS256)**, égress anonymisé,
   **module VDP/Bug-Bounty (triage assisté + CVSS v3.1 + récompenses)**,
   **ASM/CTEM (priorisation CVSS × EPSS × KEV × valeur métier)**, refonte UI complète + landing.
-- **🚧 Phase 2/3** — mesh WireGuard+Rosenpass (plan de management sans port entrant),
+- **✅ Aussi livré** — passerelle **anon-gateway** (Tor SOCKS + rotation NEWNYM) +
+  scaffolding **mesh WireGuard+Rosenpass (PQC)**.
+- **🚧 Phase 2/3** — déploiement du mesh WireGuard+Rosenpass (pairs/clés par site),
   scan actif ASM (nuclei/httpx), sync tickets (n8n), PKI mTLS interne.
 
 ---

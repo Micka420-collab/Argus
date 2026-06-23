@@ -101,7 +101,12 @@ ingest → enrich(OSINT) → correlate(OpenSearch, beaconing) → retrieve_feedb
 - Client HTTP sortant partagé et proxy-aware (`api/core/http.py`). Quand `OSINT_ANON=true`
   et `OUTBOUND_PROXY` défini, tout l'OSINT sort par Tor/proxy → l'IP réelle du SOC n'est
   pas « marquée » par les fournisseurs de réputation.
-- *Phase 3* : overlay maillé WireGuard + Rosenpass (plan de management sans port entrant).
+- **Passerelle `anon-gateway`** (`anon-gateway/`, service Compose profil `anon`) : Tor SOCKS
+  (`:9050`) + shim HTTP NEWNYM (`:9052`, rotation d'identité via `api/core/http.py`
+  `renew_tor_identity`). Aucun port exposé sur l'hôte.
+- **Scaffolding mesh PQC** : WireGuard (`wg0`) + **Rosenpass** (échange de clés ML-KEM,
+  FIPS 203) montés optionnellement dans la passerelle → tunnels post-quantiques et plan de
+  management sans port entrant. *Reste Phase 3* : déploiement des pairs/clés WG selon site.
 
 ## Pilier D — VDP / Bug-Bounty
 

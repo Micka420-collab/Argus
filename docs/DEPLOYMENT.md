@@ -95,10 +95,22 @@ persistées dans le volume `pqc_keys`. Statut visible via `GET /api/v1/crypto/jw
 
 ## 7. Activer l'égress OSINT anonymisé (optionnel)
 
+Démarrer la passerelle Tor puis pointer l'OSINT dessus :
+
 ```bash
+docker compose --profile anon up -d anon-gateway
+cat >> .env <<'ENV'
 OSINT_ANON=true
-OUTBOUND_PROXY=socks5://anon-gateway:9050   # nécessite un service Tor sur soc-net
+OUTBOUND_PROXY=socks5://anon-gateway:9050
+TOR_CONTROL_URL=http://anon-gateway:9052/newnym
+ENV
+docker compose up -d soc-api
 ```
+
+**Mesh post-quantique (optionnel, Phase 3)** : monter une config WireGuard et Rosenpass
+dans la passerelle pour des tunnels ML-KEM et un plan de management sans port entrant —
+décommenter les `volumes` de `anon-gateway` dans `docker-compose.yml`
+(`wg0.conf`, `rp.toml`) et fournir le binaire `rosenpass`.
 
 ## 8. Connecter des sources
 

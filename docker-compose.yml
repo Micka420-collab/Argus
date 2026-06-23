@@ -309,6 +309,37 @@ services:
       - soc-net
 
   # ----------------------------------------------------------
+  # anon-gateway (pilier Snowpack) — égress OSINT anonymisé
+  # Tor SOCKS (:9050) + shim NEWNYM (:9052) + WireGuard/Rosenpass optionnels.
+  # Optionnel : actif uniquement avec le profil "anon".
+  #   docker compose --profile anon up -d anon-gateway
+  # Puis dans .env : OSINT_ANON=true, OUTBOUND_PROXY=socks5://anon-gateway:9050,
+  #                  TOR_CONTROL_URL=http://anon-gateway:9052/newnym
+  # ----------------------------------------------------------
+  anon-gateway:
+    build:
+      context: ./anon-gateway
+      dockerfile: Dockerfile
+    hostname: anon-gateway
+    restart: unless-stopped
+    profiles:
+      - anon
+    cap_add:
+      - NET_ADMIN           # WireGuard (optionnel)
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+          cpus: "0.5"
+    # Optionnel : monter des configs pour activer le mesh PQC
+    # volumes:
+    #   - ./anon-gateway/wg0.conf:/etc/wireguard/wg0.conf:ro
+    #   - ./anon-gateway/rp.toml:/etc/rosenpass/rp.toml:ro
+    # Aucun port exposé sur l'hôte — accès interne via soc-net uniquement
+    networks:
+      - soc-net
+
+  # ----------------------------------------------------------
   # Nginx (Point d'entrée unique — seuls 80/443 exposés)
   # ----------------------------------------------------------
   nginx:
