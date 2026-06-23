@@ -11,6 +11,7 @@ import AssetList from "./pages/AssetList";
 import RuleList from "./pages/RuleList";
 import Crypto from "./pages/Crypto";
 import AiConsole from "./pages/AiConsole";
+import Vdp from "./pages/Vdp";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
@@ -95,6 +96,7 @@ function AppShell() {
             <Route path="/rules"           element={<RuleList />} />
             <Route path="/crypto"          element={<Crypto />} />
             <Route path="/ai"              element={<AiConsole />} />
+            <Route path="/vdp"             element={<Vdp />} />
             <Route path="/investigate/:ip" element={<Investigation />} />
             <Route path="*" element={
               <div className="text-center py-20 text-muted">

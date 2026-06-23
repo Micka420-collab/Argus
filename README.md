@@ -40,6 +40,7 @@ Argus est une plateforme SOC **open-source auto-hébergeable** qui s'inspire des
 | 🔍 **Investigation OSINT** | AbuseIPDB · VirusTotal · RDAP · ip-api — en parallèle, avec verdict + confiance |
 | ⚛️ **Post-Quantum** | TLS hybride **X25519MLKEM768**, scanner de readiness crypto-agility, **CBOM** (inventaire des handshakes TLS) |
 | 📡 **Temps réel** | Alertes WebSocket sécurisées (JWT) |
+| 🐛 **VDP / Bug-Bounty** | Portail de soumission, **triage assisté** (dédup + résumé IA), **scoring CVSS v3.1**, grille de récompenses, machine à états |
 | 🗺️ **Détection** | Wazuh (SIEM/EDR) + Suricata (IDS/IPS) + règles MITRE ATT&CK |
 | 🔐 **Sécurité** | Auth JWT + RBAC (admin/analyst/viewer), Nginx TLS, un seul port exposé (443) |
 | 🎨 **UI « Obsidian Signal »** | Dashboard temps réel, landing de présentation, design system cohérent |
@@ -119,6 +120,10 @@ docker compose build nginx && docker compose up -d nginx
 | `POST /api/v1/ai/feedback/{id}` | Feedback analyste (corriger/valider → RAG) |
 | `GET  /api/v1/crypto/readiness` | Posture post-quantique de la plateforme |
 | `GET  /api/v1/crypto/inventory` | CBOM (handshakes TLS observés) |
+| `POST /api/v1/vdp/reports` | Soumettre un rapport de vulnérabilité (CVSS auto) |
+| `GET  /api/v1/vdp/reports` | File de triage VDP |
+| `PATCH /api/v1/vdp/reports/{id}/status` | Transition d'état (triage) |
+| `GET  /api/v1/vdp/cvss?vector=` | Calcul CVSS v3.1 |
 
 ---
 
@@ -147,9 +152,9 @@ Argus/
 Détail complet dans [`docs/UPGRADE_ROADMAP.md`](docs/UPGRADE_ROADMAP.md).
 
 - **✅ Livré** — verdict 3 états + analyse IA, agent autonome (graphe + RAG), scanner PQC + CBOM,
-  TLS hybride, égress anonymisé, refonte UI complète + landing.
-- **🚧 Phase 2/3** — JWT hybride Ed25519+ML-DSA, mesh WireGuard+Rosenpass, module VDP/Bug-Bounty,
-  ASM/CTEM, sync tickets (n8n).
+  TLS hybride, égress anonymisé, **module VDP/Bug-Bounty (triage assisté + CVSS v3.1 + récompenses)**,
+  refonte UI complète + landing.
+- **🚧 Phase 2/3** — JWT hybride Ed25519+ML-DSA, mesh WireGuard+Rosenpass, ASM/CTEM, sync tickets (n8n).
 
 ---
 

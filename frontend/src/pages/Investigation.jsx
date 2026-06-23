@@ -5,10 +5,10 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  ArrowLeft, Search, Globe, Shield, AlertTriangle, Server,
-  MapPin, Building2, Wifi, Clock, Activity, ExternalLink,
+  ArrowLeft, Search, Shield, AlertTriangle, Server,
+  MapPin, Building2, Activity, ExternalLink,
   CheckCircle, XCircle, HelpCircle, Zap, Eye,
-  Brain, Sparkles, RefreshCw, ShieldCheck, ShieldAlert,
+  Brain, Sparkles, RefreshCw, ShieldAlert, ShieldCheck,
 } from "lucide-react";
 import { investigationApi } from "../services/api";
 import { format, formatDistanceToNow } from "date-fns";

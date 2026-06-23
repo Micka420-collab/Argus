@@ -210,6 +210,39 @@ async def _claude(ctx: dict[str, Any]) -> AiAnalysis | None:
 # ---------------------------------------------------------------------------
 # Point d'entrée public
 # ---------------------------------------------------------------------------
+async def complete(system_prompt: str, user_prompt: str) -> str:
+    """
+    Complétion texte générique bornée (réutilisée par le triage VDP, etc.).
+    Renvoie "" si aucun LLM n'est configuré/disponible (repli silencieux).
+    """
+    provider = (settings.LLM_PROVIDER or "none").lower()
+    try:
+        if provider == "ollama":
+            base = settings.LLM_BASE_URL.rstrip("/")
+            model = settings.LLM_MODEL or "qwen2.5:7b"
+            async with httpx.AsyncClient(timeout=settings.LLM_TIMEOUT) as client:
+                r = await client.post(
+                    f"{base}/api/chat",
+                    json={"model": model, "stream": False, "options": {"temperature": 0.2},
+                          "messages": [{"role": "system", "content": system_prompt},
+                                       {"role": "user", "content": user_prompt}]},
+                )
+                r.raise_for_status()
+                return r.json().get("message", {}).get("content", "").strip()
+        if provider == "claude" and settings.ANTHROPIC_API_KEY:
+            import anthropic
+            client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
+            msg = await client.messages.create(
+                model=settings.LLM_MODEL or "claude-sonnet-4-6",
+                max_tokens=512, temperature=0.2, system=system_prompt,
+                messages=[{"role": "user", "content": user_prompt}],
+            )
+            return "".join(b.text for b in msg.content if getattr(b, "type", "") == "text").strip()
+    except Exception as e:
+        logger.warning("llm.complete indisponible (%s)", e)
+    return ""
+
+
 async def analyze(ctx: dict[str, Any]) -> AiAnalysis:
     """
     Produit une analyse rédigée. Le contexte `ctx` doit contenir au minimum :

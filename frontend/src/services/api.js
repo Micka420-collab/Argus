@@ -152,6 +152,26 @@ export const aiApi = {
 };
 
 // ----------------------------------------------------------
+// VDP / Bug-Bounty (pilier YesWeHack)
+// ----------------------------------------------------------
+export const vdpApi = {
+  submit: (data) => request("/vdp/reports", { method: "POST", body: JSON.stringify(data) }),
+  list: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return request(`/vdp/reports${qs ? "?" + qs : ""}`);
+  },
+  get: (id) => request(`/vdp/reports/${encodeURIComponent(id)}`),
+  setStatus: (id, status, note = "") =>
+    request(`/vdp/reports/${encodeURIComponent(id)}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status, note }),
+    }),
+  programs: () => request("/vdp/programs"),
+  cvss: (vector) => request(`/vdp/cvss?vector=${encodeURIComponent(vector)}`),
+  stats: () => request("/vdp/stats"),
+};
+
+// ----------------------------------------------------------
 // Posture post-quantique (pilier CryptoNext)
 // ----------------------------------------------------------
 export const cryptoApi = {

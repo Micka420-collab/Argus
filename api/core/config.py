@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     OPENSEARCH_INDEX_ALERTS: str = "wazuh-alerts-*"
     OPENSEARCH_INDEX_SURICATA: str = "soc-suricata-*"
     OPENSEARCH_INDEX_AI: str = "soc-investigations"   # rapports de l'agent IA autonome
+    OPENSEARCH_INDEX_VDP: str = "soc-vdp-reports"     # rapports VDP / bug-bounty
 
     # ----------------------------------------------------------
     # Wazuh API

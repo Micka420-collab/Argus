@@ -14,6 +14,14 @@ au quantique**, en s'inspirant de quatre acteurs et en les recréant en
 > Principe directeur (cœur de Qevlar) : **le verdict est déterministe (Python pur)** ;
 > le **LLM est borné** à la rédaction du rapport — il ne décide jamais.
 
+> **État (mises à jour ultérieures à l'increment 1)** — désormais livré aussi :
+> **Pilier A** agent autonome complet (`services/ai_investigation.py` : graphe déterministe +
+> trace + corrélation/beaconing) et feedback RAG (`services/feedback.py`), routeur `/api/v1/ai/*`,
+> page **AI Console** ; **Pilier D** module **VDP / Bug-Bounty** complet (`models/vdp.py`,
+> `services/vdp.py` avec **CVSS v3.1** maison + grille de récompenses, `services/vdp_triage.py`,
+> `routers/vdp.py`, rôles `RESEARCHER`/`TRIAGER`, pages **Vdp**) ; **refonte UI « Obsidian Signal »**
+> (shell sidebar/topbar, landing publique). Restent en Phase 2/3 : JWT PQC, mesh, ASM/CTEM.
+
 ---
 
 ## ✅ Livré dans cette itération (increment 1)

@@ -27,14 +27,18 @@ def verify_password(plain: str, hashed: str) -> bool:
 # Rôles utilisateur
 # ----------------------------------------------------------
 class Role(str, Enum):
-    ADMIN   = "admin"    # Tout accès + gestion utilisateurs
-    ANALYST = "analyst"  # Alertes, incidents, playbooks
-    VIEWER  = "viewer"   # Lecture seule
+    ADMIN      = "admin"      # Tout accès + gestion utilisateurs
+    ANALYST    = "analyst"    # Alertes, incidents, playbooks
+    TRIAGER    = "triager"    # Triage des rapports VDP / bug-bounty
+    RESEARCHER = "researcher" # Soumission de rapports VDP
+    VIEWER     = "viewer"     # Lecture seule
 
 ROLE_PERMISSIONS = {
-    Role.ADMIN:   ["read", "write", "delete", "admin"],
-    Role.ANALYST: ["read", "write"],
-    Role.VIEWER:  ["read"],
+    Role.ADMIN:      ["read", "write", "delete", "admin", "triage"],
+    Role.ANALYST:    ["read", "write", "triage"],
+    Role.TRIAGER:    ["read", "triage"],
+    Role.RESEARCHER: ["read", "submit"],
+    Role.VIEWER:     ["read"],
 }
 
 # ----------------------------------------------------------
@@ -118,3 +122,4 @@ def require_role(*roles: Role):
 
 require_analyst = require_role(Role.ADMIN, Role.ANALYST)
 require_admin   = require_role(Role.ADMIN)
+require_triager = require_role(Role.ADMIN, Role.ANALYST, Role.TRIAGER)
