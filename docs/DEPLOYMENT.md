@@ -12,6 +12,22 @@
   echo 'vm.max_map_count=262144' | sudo tee -a /etc/sysctl.conf
   ```
 
+## 0. Installation express (recommandée)
+
+Un installeur guidé fait tout (Docker, secrets, certificat, options, démarrage) :
+
+```bash
+# Linux / macOS
+curl -fsSL https://raw.githubusercontent.com/Micka420-collab/Argus/main/install.sh | bash
+```
+```powershell
+# Windows (Docker Desktop)
+git clone https://github.com/Micka420-collab/Argus.git ; cd Argus
+powershell -ExecutionPolicy Bypass -File .\install.ps1
+```
+
+Les sections ci-dessous décrivent l'installation **manuelle** / les réglages avancés.
+
 ## 1. Cloner et configurer
 
 ```bash

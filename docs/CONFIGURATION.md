@@ -8,6 +8,8 @@ l'environnement (ou un fichier `.env`). Modèle : [`.env.example`](../.env.examp
 | Variable | Défaut | Description |
 |---|---|---|
 | `SECRET_KEY` | *(aléatoire)* | **Obligatoire & persistant.** Clé de signature HS256 et graine Ed25519 du JWT PQC. `openssl rand -hex 32`. |
+| `ADMIN_USERNAME` | `admin` | Identifiant du compte admin créé au premier démarrage. |
+| `ADMIN_PASSWORD` | `Admin@SOC2024!` | Mot de passe initial de l'admin (l'installeur en génère un fort). |
 | `ENVIRONMENT` | `production` | `development` \| `staging` \| `production`. |
 | `DEBUG` | `false` | Active Swagger (`/docs`) et les logs DEBUG. |
 | `CORS_ORIGINS` | localhost… | Origines autorisées pour le frontend. |

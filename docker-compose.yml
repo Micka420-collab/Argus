@@ -176,6 +176,8 @@ services:
       # App
       SECRET_KEY: ${SECRET_KEY}
       ENVIRONMENT: ${ENVIRONMENT:-production}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Admin@SOC2024!}
       # Redis
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       # Analyste IA borné (pilier Qevlar) — none | ollama | claude

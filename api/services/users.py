@@ -140,16 +140,20 @@ async def ensure_default_admin():
     if count > 0:
         return
 
-    default_password = "Admin@SOC2024!"
+    username = settings.ADMIN_USERNAME or "admin"
+    default_password = settings.ADMIN_PASSWORD or "Admin@SOC2024!"
     await create_user(UserCreate(
-        username="admin",
+        username=username,
         password=default_password,
         full_name="Administrateur SOC",
         role=Role.ADMIN,
     ))
     logger.warning("=" * 60)
     logger.warning("COMPTE ADMIN PAR DÉFAUT CRÉÉ")
-    logger.warning("  Username : admin")
-    logger.warning("  Password : %s", default_password)
-    logger.warning("  → CHANGER CE MOT DE PASSE IMMÉDIATEMENT !")
+    logger.warning("  Username : %s", username)
+    if default_password == "Admin@SOC2024!":
+        logger.warning("  Password : %s", default_password)
+        logger.warning("  → CHANGER CE MOT DE PASSE IMMÉDIATEMENT !")
+    else:
+        logger.warning("  Password : (défini via ADMIN_PASSWORD)")
     logger.warning("=" * 60)

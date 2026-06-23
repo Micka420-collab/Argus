@@ -18,6 +18,10 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     SECRET_KEY: str = secrets.token_hex(32)
 
+    # Compte admin créé au premier démarrage (configurable par l'installeur)
+    ADMIN_USERNAME: str = "admin"
+    ADMIN_PASSWORD: str = "Admin@SOC2024!"   # bootstrap — à changer en production
+
     # ----------------------------------------------------------
     # OpenSearch
     # ----------------------------------------------------------

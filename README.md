@@ -74,7 +74,31 @@ Argus est une plateforme SOC **open-source auto-hébergeable** qui s'inspire des
 
 ---
 
-## 🚀 Démarrage rapide
+## 🚀 Installation
+
+### ✨ Installeur guidé (recommandé — même pour les débutants)
+
+Il vérifie Docker, **génère tous les secrets**, crée le certificat TLS, configure
+l'IA / le post-quantique / l'anonymisation selon vos réponses, démarre la stack, puis
+affiche l'URL et le mot de passe admin.
+
+**Linux / macOS** — une seule commande :
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Micka420-collab/Argus/main/install.sh | bash
+```
+
+**Windows** (PowerShell, avec Docker Desktop) :
+
+```powershell
+git clone https://github.com/Micka420-collab/Argus.git ; cd Argus
+powershell -ExecutionPolicy Bypass -File .\install.ps1
+```
+
+> Installation sans aucune question (valeurs par défaut sûres) : `ARGUS_YES=1 ./install.sh`
+> (ou `.\install.ps1 -Yes`).
+
+### 🔧 Installation manuelle
 
 ```bash
 git clone https://github.com/Micka420-collab/Argus.git
