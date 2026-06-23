@@ -123,6 +123,13 @@ class AlertEngine:
                 name=f"enrich_{src_ip}",
             )
 
+        # 3b. Investigation IA autonome sur alerte critique (pilier Qevlar)
+        if settings.AI_AUTO_INVESTIGATE and level >= settings.ALERT_CRITICAL_LEVEL:
+            asyncio.create_task(
+                self._run_ai_investigation(alert),
+                name=f"ai_investigate_{alert_id}",
+            )
+
         # 4. Priorisation + playbooks
         mitre_ids = rule.get("mitre", {}).get("id", [])
 
@@ -140,6 +147,18 @@ class AlertEngine:
         elif level >= settings.ALERT_MIN_LEVEL:
             group_key = f"{rule.get('id')}_{agent.get('name', 'unknown')}"
             self._group_buffer[group_key].append(alert)
+
+    async def _run_ai_investigation(self, alert: dict):
+        """Lance l'agent d'investigation autonome (best-effort, non bloquant)."""
+        try:
+            from api.services.ai_investigation import AiInvestigationAgent
+            report = await AiInvestigationAgent().run(alert, source="auto")
+            logger.info(
+                "Investigation IA autonome terminée: %s → %s",
+                report.get("id"), report.get("decision"),
+            )
+        except Exception as e:
+            logger.error("Investigation IA autonome échouée: %s", e)
 
     async def _trigger_playbooks(self, mitre_ids: List[str], alert: dict):
         """Déclenche les playbooks correspondant aux TTPs MITRE."""

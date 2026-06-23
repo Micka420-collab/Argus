@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     OPENSEARCH_PASSWORD: str = ""
     OPENSEARCH_INDEX_ALERTS: str = "wazuh-alerts-*"
     OPENSEARCH_INDEX_SURICATA: str = "soc-suricata-*"
+    OPENSEARCH_INDEX_AI: str = "soc-investigations"   # rapports de l'agent IA autonome
 
     # ----------------------------------------------------------
     # Wazuh API
@@ -71,6 +72,32 @@ class Settings(BaseSettings):
     # ----------------------------------------------------------
     ENRICH_RISK_THRESHOLD: int = 90    # Score risque déclenchant escalade
     ENRICH_CACHE_TTL: int = 3600       # Cache enrichissement (1 heure)
+
+    # ----------------------------------------------------------
+    # Analyste IA autonome (pilier Qevlar) — LLM borné
+    # Le LLM ne décide JAMAIS du verdict : il rédige seulement le rapport.
+    # ----------------------------------------------------------
+    LLM_PROVIDER: str = "none"             # none | ollama | claude
+    LLM_BASE_URL: str = "http://ollama:11434"
+    LLM_MODEL: Optional[str] = None        # ex. qwen2.5:7b | claude-sonnet-4-6
+    LLM_TIMEOUT: float = 60.0
+    ANTHROPIC_API_KEY: Optional[str] = None
+    AI_AUTO_INVESTIGATE: bool = False      # auto-déclenche l'IA sur alertes critiques
+
+    # ----------------------------------------------------------
+    # Égress anonymisé (pilier Snowpack) — OSINT via Tor/proxy
+    # ----------------------------------------------------------
+    OUTBOUND_PROXY: Optional[str] = None   # ex. socks5://anon-gateway:9050
+    OSINT_ANON: bool = False               # router l'OSINT par OUTBOUND_PROXY
+    TOR_CONTROL_URL: Optional[str] = None  # endpoint HTTP NEWNYM (rotation IP)
+
+    # ----------------------------------------------------------
+    # Posture post-quantique (pilier CryptoNext)
+    # ----------------------------------------------------------
+    JWT_ALGORITHM: str = "HS256"
+    PQC_JWT: bool = False                  # signatures JWT hybrides Ed25519+ML-DSA
+    TLS_GROUPS: str = "X25519MLKEM768:X25519:secp256r1"  # groupes TLS edge (hybride PQC)
+    TLS_CERT_SIG: str = "RSA-4096"         # type de signature du certificat serveur
 
     # ----------------------------------------------------------
     # CORS (pour le frontend React)

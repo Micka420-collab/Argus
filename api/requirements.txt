@@ -16,8 +16,13 @@ email-validator==2.1.0
 # Base de données / Cache
 redis==5.0.1
 
-# HTTP client async
-httpx==0.26.0
+# HTTP client async (+ socks pour l'égress anonymisé Tor — pilier Snowpack)
+httpx[socks]==0.26.0
+
+# Analyste IA borné (pilier Qevlar) — optionnel, imports paresseux
+# Ollama est appelé en HTTP (httpx) ; le SDK Anthropic n'est requis que pour
+# LLM_PROVIDER=claude. La plateforme fonctionne sans (repli heuristique).
+anthropic==0.40.0
 
 # OpenSearch
 opensearch-py==2.4.2

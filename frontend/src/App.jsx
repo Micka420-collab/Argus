@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import Navbar from "./components/Navbar";
+import Sidebar from "./components/Sidebar";
+import Topbar from "./components/Topbar";
 import Dashboard from "./components/Dashboard";
 import AlertList from "./components/AlertList";
 import AlertDetail from "./components/AlertDetail";
@@ -8,6 +9,9 @@ import IncidentList from "./components/IncidentList";
 import Investigation from "./pages/Investigation";
 import AssetList from "./pages/AssetList";
 import RuleList from "./pages/RuleList";
+import Crypto from "./pages/Crypto";
+import AiConsole from "./pages/AiConsole";
+import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { useWebSocket } from "./hooks/useWebSocket";
@@ -32,46 +36,37 @@ function playAlertSound() {
 }
 
 // ---------------------------------------------------------------------------
-// Route protégée — redirige vers /login si non authentifié
+// Route protégée — guests → page de présentation publique
 // ---------------------------------------------------------------------------
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
-
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-950">
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-blue-500 border-t-transparent" />
+      <div className="flex items-center justify-center min-h-screen bg-bg">
+        <div className="animate-spin-slow rounded-full h-10 w-10 border-2 border-accent border-t-transparent" />
       </div>
     );
   }
-
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
+  if (!user) return <Navigate to="/welcome" replace />;
   return children;
 }
 
 // ---------------------------------------------------------------------------
-// Shell principal (après authentification)
+// Shell applicatif (sidebar + topbar)
 // ---------------------------------------------------------------------------
 function AppShell() {
-  const [newAlerts, setNewAlerts]       = useState([]);
+  const [newAlerts, setNewAlerts]         = useState([]);
   const [criticalCount, setCriticalCount] = useState(0);
 
   const handleAlert = useCallback((alert) => {
     const level = alert.rule?.level || 0;
-
     setNewAlerts(prev => [alert, ...prev].slice(0, 50));
-
     if (level >= 14) {
       setCriticalCount(prev => prev + 1);
       playAlertSound();
     }
-
-    // Toast notification navigateur
-    if (Notification.permission === "granted") {
-      new Notification("🚨 SOC Alert", {
+    if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+      new Notification("🚨 Argus Alert", {
         body: alert.rule?.description || "Nouvelle alerte",
         icon: "/favicon.ico",
         tag:  "soc-alert",
@@ -81,48 +76,51 @@ function AppShell() {
 
   const { status: wsStatus } = useWebSocket(handleAlert);
 
-  // Demander permission notifications navigateur au premier rendu
-  if (Notification.permission === "default") {
+  if (typeof Notification !== "undefined" && Notification.permission === "default") {
     Notification.requestPermission();
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col">
-      <Navbar wsStatus={wsStatus} criticalCount={criticalCount} />
-
-      <main className="flex-1 overflow-auto">
-        <Routes>
-          <Route path="/"           element={<Dashboard newAlerts={newAlerts} />} />
-          <Route path="/alerts"     element={<AlertList newAlerts={newAlerts} />} />
-          <Route path="/alerts/:id" element={<AlertDetail />} />
-          <Route path="/incidents"         element={<IncidentList />} />
-          <Route path="/assets"            element={<AssetList />} />
-          <Route path="/rules"             element={<RuleList />} />
-          <Route path="/investigate/:ip"   element={<Investigation />} />
-          <Route path="*"                  element={
-            <div className="text-center py-20 text-slate-400">
-              <p className="text-4xl mb-4">404</p>
-              <p>Page introuvable</p>
-            </div>
-          } />
-        </Routes>
-      </main>
+    <div className="flex min-h-screen bg-bg">
+      <Sidebar criticalCount={criticalCount} />
+      <div className="flex-1 min-w-0 flex flex-col">
+        <Topbar wsStatus={wsStatus} criticalCount={criticalCount} />
+        <main className="flex-1 overflow-auto mx-auto w-full max-w-content px-4 lg:px-8 py-6">
+          <Routes>
+            <Route path="/"                element={<Dashboard newAlerts={newAlerts} />} />
+            <Route path="/alerts"          element={<AlertList newAlerts={newAlerts} />} />
+            <Route path="/alerts/:id"      element={<AlertDetail />} />
+            <Route path="/incidents"       element={<IncidentList />} />
+            <Route path="/assets"          element={<AssetList />} />
+            <Route path="/rules"           element={<RuleList />} />
+            <Route path="/crypto"          element={<Crypto />} />
+            <Route path="/ai"              element={<AiConsole />} />
+            <Route path="/investigate/:ip" element={<Investigation />} />
+            <Route path="*" element={
+              <div className="text-center py-20 text-muted">
+                <p className="text-4xl mb-4 text-text">404</p>
+                <p>Page introuvable</p>
+              </div>
+            } />
+          </Routes>
+        </main>
+      </div>
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// App root avec AuthProvider + routing
+// App root
 // ---------------------------------------------------------------------------
 export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          {/* Page de login (publique) */}
-          <Route path="/login" element={<Login />} />
-
-          {/* Toutes les autres routes → protégées */}
+          {/* Pages publiques */}
+          <Route path="/welcome" element={<Landing />} />
+          <Route path="/login"   element={<Login />} />
+          {/* Application protégée */}
           <Route path="/*" element={
             <ProtectedRoute>
               <AppShell />

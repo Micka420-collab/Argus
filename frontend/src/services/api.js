@@ -6,9 +6,16 @@ const BASE_URL = process.env.REACT_APP_API_URL || "/api/v1";
 
 async function request(path, options = {}) {
   const url = `${BASE_URL}${path}`;
+  const token = (typeof localStorage !== "undefined") ? localStorage.getItem("soc_token") : null;
+  const { headers: optHeaders, ...rest } = options;
   const config = {
-    headers: { "Content-Type": "application/json", ...options.headers },
-    ...options,
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...optHeaders,
+    },
+    ...rest,
   };
 
   const response = await fetch(url, config);
@@ -105,12 +112,51 @@ export const rulesApi = {
 };
 
 // ----------------------------------------------------------
-// Investigation OSINT
+// Investigation OSINT (+ verdict IA borné)
 // ----------------------------------------------------------
 export const investigationApi = {
   /**
    * Lance une investigation complète sur une IP suspecte.
-   * Retourne : géo, AbuseIPDB, VirusTotal, RDAP, historique interne, profil attaque, risque.
+   * Retourne : géo, AbuseIPDB, VirusTotal, RDAP, historique interne, profil
+   * attaque, verdict déterministe (risk.verdict/confidence) et analyse IA (ai).
+   * @param {string} ip
+   * @param {boolean} refresh - ignore le cache et relance une analyse fraîche
    */
-  investigate: (ip) => request(`/investigate/${encodeURIComponent(ip)}`),
+  investigate: (ip, refresh = false) =>
+    request(`/investigate/${encodeURIComponent(ip)}${refresh ? "?refresh=true" : ""}`),
+};
+
+// ----------------------------------------------------------
+// Analyste IA autonome (pilier Qevlar)
+// ----------------------------------------------------------
+export const aiApi = {
+  /** Liste des investigations autonomes (filtrable par verdict). */
+  reports: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return request(`/ai/reports${qs ? "?" + qs : ""}`);
+  },
+  /** Détail d'un rapport (état + trace du graphe). */
+  report: (id) => request(`/ai/report/${encodeURIComponent(id)}`),
+  /** Déclenche l'agent autonome sur une alerte. */
+  investigateAlert: (alertId) =>
+    request(`/ai/investigate/${encodeURIComponent(alertId)}`, { method: "POST" }),
+  /** Déclenche l'agent autonome sur une IP. */
+  investigateIp: (ip) =>
+    request(`/ai/investigate-ip/${encodeURIComponent(ip)}`, { method: "POST" }),
+  /** Feedback analyste (corriger/valider un verdict → RAG). */
+  feedback: (id, correctedVerdict, rationale = "") =>
+    request(
+      `/ai/feedback/${encodeURIComponent(id)}?corrected_verdict=${encodeURIComponent(correctedVerdict)}&rationale=${encodeURIComponent(rationale)}`,
+      { method: "POST" }
+    ),
+};
+
+// ----------------------------------------------------------
+// Posture post-quantique (pilier CryptoNext)
+// ----------------------------------------------------------
+export const cryptoApi = {
+  /** Auto-évaluation de la crypto déclarée d'Argus (TLS, certificat, JWT). */
+  readiness: () => request("/crypto/readiness"),
+  /** CBOM observé : inventaire des handshakes TLS vus par Suricata. */
+  inventory: (periodHours = 24) => request(`/crypto/inventory?period_hours=${periodHours}`),
 };

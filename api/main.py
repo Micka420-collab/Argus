@@ -14,6 +14,8 @@ from api.core.scheduler import start_scheduler, stop_scheduler
 from api.routers import alerts, incidents, assets, rules, playbooks
 from api.routers import auth as auth_router
 from api.routers import investigation as investigation_router
+from api.routers import crypto as crypto_router
+from api.routers import ai as ai_router
 from api.services.alerting import AlertEngine
 from api.services.users import ensure_default_admin
 from api.middleware.security import (
@@ -107,6 +109,8 @@ app.include_router(assets.router,               prefix="/api/v1/assets",      ta
 app.include_router(rules.router,                prefix="/api/v1/rules",       tags=["Règles"])
 app.include_router(playbooks.router,            prefix="/api/v1/playbooks",   tags=["Playbooks"])
 app.include_router(investigation_router.router, prefix="/api/v1/investigate", tags=["Investigation OSINT"])
+app.include_router(crypto_router.router,         prefix="/api/v1/crypto",      tags=["Post-Quantum"])
+app.include_router(ai_router.router,             prefix="/api/v1/ai",          tags=["Analyste IA"])
 
 
 # ----------------------------------------------------------

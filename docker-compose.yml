@@ -178,6 +178,18 @@ services:
       ENVIRONMENT: ${ENVIRONMENT:-production}
       # Redis
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      # Analyste IA borné (pilier Qevlar) — none | ollama | claude
+      LLM_PROVIDER: ${LLM_PROVIDER:-none}
+      LLM_BASE_URL: ${LLM_BASE_URL:-http://ollama:11434}
+      LLM_MODEL: ${LLM_MODEL:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      AI_AUTO_INVESTIGATE: ${AI_AUTO_INVESTIGATE:-false}
+      # Égress anonymisé OSINT (pilier Snowpack)
+      OUTBOUND_PROXY: ${OUTBOUND_PROXY:-}
+      OSINT_ANON: ${OSINT_ANON:-false}
+      # Posture post-quantique (pilier CryptoNext)
+      PQC_JWT: ${PQC_JWT:-false}
+      TLS_GROUPS: ${TLS_GROUPS:-X25519MLKEM768:X25519:secp256r1}
     depends_on:
       opensearch:
         condition: service_healthy
@@ -271,6 +283,30 @@ services:
       retries: 3
 
   # ----------------------------------------------------------
+  # Ollama (LLM local pour l'analyste IA — pilier Qevlar)
+  # Optionnel : actif uniquement avec le profil "ai".
+  # Données résidentes / air-gap. GPU optionnel.
+  # Lancer avec : docker compose --profile ai up -d
+  # Puis tirer un modèle : docker compose exec ollama ollama pull qwen2.5:7b
+  # ----------------------------------------------------------
+  ollama:
+    image: ollama/ollama:latest
+    hostname: ollama
+    restart: unless-stopped
+    profiles:
+      - ai
+    deploy:
+      resources:
+        limits:
+          memory: 8g
+          cpus: "4.0"
+    volumes:
+      - ollama_models:/root/.ollama
+    # Pas de port exposé sur l'hôte — accès interne via soc-net uniquement
+    networks:
+      - soc-net
+
+  # ----------------------------------------------------------
   # Nginx (Point d'entrée unique — seuls 80/443 exposés)
   # ----------------------------------------------------------
   nginx:
@@ -325,3 +361,4 @@ volumes:
   suricata_logs:
   suricata_rules:
   redis_data:
+  ollama_models:

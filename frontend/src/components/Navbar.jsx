@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Shield, Bell, Activity, Server, BookOpen, AlertTriangle } from "lucide-react";
+import { Shield, Bell, Activity, Server, BookOpen, AlertTriangle, Atom } from "lucide-react";
 
 const NAV_ITEMS = [
   { path: "/",          label: "Dashboard",  icon: Activity },
@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { path: "/incidents", label: "Incidents",  icon: AlertTriangle },
   { path: "/assets",    label: "Assets",     icon: Server },
   { path: "/rules",     label: "Règles",     icon: BookOpen },
+  { path: "/crypto",    label: "Post-Quantum", icon: Atom },
 ];
 
 export default function Navbar({ wsStatus, criticalCount = 0 }) {

@@ -29,7 +29,15 @@ import redis.asyncio as aioredis
 from pydantic import BaseModel
 
 from api.core.config import settings
+from api.core.http import get_http_client
 from api.services.opensearch import OpenSearchClient
+from api.services.scoring import (
+    Evidence,
+    RecommendedAction,
+    RiskAssessment,
+    compute_verdict,
+)
+from api.services.llm import AiAnalysis, analyze as llm_analyze
 
 # ---------------------------------------------------------------------------
 # Client Redis partagé (initialisé au premier appel)
@@ -126,18 +134,8 @@ class AttackProfile(BaseModel):
     requests_per_minute: float      = 0.0
 
 
-class RecommendedAction(BaseModel):
-    action:      str
-    label:       str
-    description: str
-    priority:    str   # high|medium|low
-
-
-class RiskAssessment(BaseModel):
-    score:               int                     = 0
-    level:               str                     = "low"
-    factors:             list[str]               = []
-    recommended_actions: list[RecommendedAction] = []
+# RecommendedAction & RiskAssessment sont désormais définis dans services.scoring
+# (source de vérité unique) et importés ci-dessus.
 
 
 class InvestigationReport(BaseModel):
@@ -148,6 +146,7 @@ class InvestigationReport(BaseModel):
     virustotal:     VirusTotalReport
     attack_profile: AttackProfile
     risk:           RiskAssessment
+    ai:             AiAnalysis | None = None
     raw_rdap:       dict[str, Any] = {}
 
 
@@ -189,15 +188,19 @@ class InvestigationService:
     # ------------------------------------------------------------------
     # Point d'entrée public
     # ------------------------------------------------------------------
-    async def investigate(self, ip: str) -> InvestigationReport:
-        logger.info("Investigation OSINT démarrée pour l'IP : %s", ip)
+    async def investigate(self, ip: str, refresh: bool = False) -> InvestigationReport:
+        logger.info("Investigation OSINT démarrée pour l'IP : %s (refresh=%s)", ip, refresh)
 
         # Vérifier le cache Redis pour un rapport complet (TTL 1 heure)
         cache_key = f"investigation:{ip}"
-        cached = await self._cache_get(cache_key)
-        if cached:
-            logger.info("Investigation récupérée depuis le cache Redis pour %s", ip)
-            return InvestigationReport(**cached)
+        if not refresh:
+            cached = await self._cache_get(cache_key)
+            if cached:
+                logger.info("Investigation récupérée depuis le cache Redis pour %s", ip)
+                try:
+                    return InvestigationReport(**cached)
+                except Exception:
+                    logger.info("Cache obsolète pour %s — ré-investigation", ip)
 
         geo_t, abuse_t, vt_t, rdap_t, hist_t, ptr_t = await asyncio.gather(
             self._fetch_geo(ip),
@@ -223,6 +226,7 @@ class InvestigationService:
         vt      = self._parse_virustotal(vt_raw)
         profile = self._build_attack_profile(history, abuse)
         risk    = self._assess_risk(abuse, vt, profile, geo)
+        ai      = await self._ai_analyze(ip, geo, abuse, vt, profile, risk)
 
         report = InvestigationReport(
             ip=ip,
@@ -232,6 +236,7 @@ class InvestigationService:
             virustotal=vt,
             attack_profile=profile,
             risk=risk,
+            ai=ai,
             raw_rdap=rdap,
         )
 
@@ -248,7 +253,9 @@ class InvestigationService:
             "lat,lon,timezone,isp,org,as,asname,reverse,proxy,hosting,mobile,query"
         )
         try:
-            async with httpx.AsyncClient(timeout=6) as client:
+            # ip-api.com (offre gratuite = HTTP). Routé via get_http_client pour
+            # bénéficier de l'égress anonymisé (Tor) si OSINT_ANON est actif.
+            async with get_http_client(timeout=6) as client:
                 r = await client.get(
                     f"http://ip-api.com/json/{ip}",
                     params={"fields": fields},
@@ -290,7 +297,7 @@ class InvestigationService:
         if not settings.ABUSEIPDB_KEY:
             return {}
         try:
-            async with httpx.AsyncClient(timeout=8) as client:
+            async with get_http_client(timeout=8) as client:
                 r = await client.get(
                     "https://api.abuseipdb.com/api/v2/check",
                     params={
@@ -342,7 +349,7 @@ class InvestigationService:
         if not settings.VIRUSTOTAL_KEY:
             return {}
         try:
-            async with httpx.AsyncClient(timeout=8) as client:
+            async with get_http_client(timeout=8) as client:
                 r = await client.get(
                     f"https://www.virustotal.com/api/v3/ip_addresses/{ip}",
                     headers={"x-apikey": settings.VIRUSTOTAL_KEY},
@@ -384,7 +391,7 @@ class InvestigationService:
             f"https://rdap.db.ripe.net/ip/{ip}",
             f"https://rdap.apnic.net/ip/{ip}",
         ]
-        async with httpx.AsyncClient(timeout=8, follow_redirects=True) as client:
+        async with get_http_client(timeout=8) as client:
             for url in urls:
                 try:
                     r = await client.get(url)
@@ -556,7 +563,7 @@ class InvestigationService:
         )
 
     # ------------------------------------------------------------------
-    # Évaluation du risque global (0-100)
+    # Évaluation du risque global (0-100) — délègue au scorer unifié
     # ------------------------------------------------------------------
     def _assess_risk(
         self,
@@ -565,98 +572,74 @@ class InvestigationService:
         profile: AttackProfile,
         geo:     IpGeoInfo,
     ) -> RiskAssessment:
-
-        score   = 0
-        factors: list[str]              = []
-        actions: list[RecommendedAction] = []
-
-        # AbuseIPDB confidence score
-        if   abuse.confidence_score >= 90: score += 40; factors.append(f"Score AbuseIPDB très élevé : {abuse.confidence_score}/100")
-        elif abuse.confidence_score >= 50: score += 25; factors.append(f"Score AbuseIPDB élevé : {abuse.confidence_score}/100")
-        elif abuse.confidence_score >= 20: score += 10; factors.append(f"Score AbuseIPDB modéré : {abuse.confidence_score}/100")
-
-        # Nombre total de signalements
-        if   abuse.total_reports >= 100: score += 15; factors.append(f"Signalée {abuse.total_reports}× sur AbuseIPDB")
-        elif abuse.total_reports >= 10:  score += 8;  factors.append(f"Signalée {abuse.total_reports}× sur AbuseIPDB")
-
-        # VirusTotal détections
-        if   vt.malicious >= 10: score += 25; factors.append(f"Détectée malveillante par {vt.malicious} moteurs VT")
-        elif vt.malicious >= 5:  score += 20; factors.append(f"Détectée malveillante par {vt.malicious} moteurs VT")
-        elif vt.malicious >= 1:  score += 10; factors.append(f"Détectée par {vt.malicious} moteur(s) VT")
-
-        # Intensité de l'attaque interne
-        intensity_pts = {"critical": 20, "high": 12, "medium": 7, "low": 3}
-        score += intensity_pts.get(profile.intensity, 0)
-        if profile.intensity in ("critical", "high"):
-            factors.append(f"Intensité : {profile.intensity.upper()} ({profile.alert_count} alertes, {profile.requests_per_minute} req/min)")
-
-        # Infrastructure suspecte
-        if geo.is_proxy:
-            score += 10
-            factors.append("IP identifiée comme proxy / VPN / Tor exit node")
-        if geo.is_hosting:
-            score += 5
-            factors.append("IP hébergée dans un datacenter (VPS/cloud)")
-
-        # Catégories dangereuses connues
-        DANGER_CATS = {"DDoS Attack", "Brute-Force", "SSH Brute-Force", "Web App Attack", "Hacking", "SQL Injection"}
-        matched = DANGER_CATS & set(abuse.categories)
-        if matched:
-            score += 8
-            factors.append(f"Catégories connues : {', '.join(matched)}")
-
-        score = min(score, 100)
-        if   score >= 80: level = "critical"
-        elif score >= 55: level = "high"
-        elif score >= 30: level = "medium"
-        else:             level = "low"
-
-        # Actions recommandées
-        if score >= 50:
-            actions.append(RecommendedAction(
-                action="block_ip",
-                label="🚫 Bloquer l'IP immédiatement",
-                description="Ajouter à la liste noire Wazuh + règle iptables/nftables sur tous les hôtes",
-                priority="high",
-            ))
-        if score >= 70 and geo.asn:
-            actions.append(RecommendedAction(
-                action="block_asn",
-                label=f"🌐 Bloquer l'ASN entier ({geo.asn})",
-                description=f"Toutes les IPs de {geo.asn_name or geo.isp} seront bloquées (attention : faux positifs possibles)",
-                priority="medium",
-            ))
-        if profile.type == "ddos":
-            actions.append(RecommendedAction(
-                action="rate_limit",
-                label="⚡ Appliquer un rate limit agressif",
-                description="Limiter à 10 req/s depuis cette IP (nginx limit_req ou iptables --hashlimit)",
-                priority="high",
-            ))
-        if abuse.confidence_score >= 30:
-            actions.append(RecommendedAction(
-                action="report_abuseipdb",
-                label="📋 Signaler sur AbuseIPDB",
-                description="Contribuer à la protection communautaire en soumettant un rapport",
-                priority="low",
-            ))
-        if profile.type == "bruteforce":
-            actions.append(RecommendedAction(
-                action="change_credentials",
-                label="🔑 Vérifier les comptes ciblés",
-                description=f"Services visés : {', '.join(profile.targeted_services or ['?'])} — vérifier logs d'accès",
-                priority="high",
-            ))
-        actions.append(RecommendedAction(
-            action="monitor",
-            label="👁️ Surveillance renforcée 72h",
-            description="Créer une règle d'alerte prioritaire pour surveiller cette IP et son sous-réseau /24",
-            priority="low",
-        ))
-
-        return RiskAssessment(
-            score=score,
-            level=level,
-            factors=factors,
-            recommended_actions=actions,
+        """
+        Construit un faisceau de preuves (`Evidence`) puis délègue au scorer
+        déterministe unique `services.scoring.compute_verdict`. Garantit que
+        l'investigation OSINT et l'enrichissement temps réel notent à l'identique.
+        """
+        ev = Evidence(
+            abuse_confidence=abuse.confidence_score,
+            abuse_total_reports=abuse.total_reports,
+            abuse_categories=abuse.categories,
+            vt_malicious=vt.malicious,
+            vt_suspicious=vt.suspicious,
+            attack_type=profile.type,
+            attack_intensity=profile.intensity,
+            attack_alert_count=profile.alert_count,
+            attack_rpm=profile.requests_per_minute,
+            targeted_services=profile.targeted_services,
+            is_proxy=geo.is_proxy,
+            is_hosting=geo.is_hosting,
+            asn=geo.asn,
+            asn_name=geo.asn_name,
+            isp=geo.isp,
         )
+        return compute_verdict(ev)
+
+    # ------------------------------------------------------------------
+    # Analyse IA bornée — rédige le rapport, NE décide PAS du verdict
+    # ------------------------------------------------------------------
+    async def _ai_analyze(
+        self,
+        ip:      str,
+        geo:     IpGeoInfo,
+        abuse:   AbuseReport,
+        vt:      VirusTotalReport,
+        profile: AttackProfile,
+        risk:    RiskAssessment,
+    ) -> AiAnalysis:
+        """
+        Appelle le LLM borné avec le verdict DÉJÀ calculé. Le modèle ne fait que
+        rédiger résumé + récit + remédiation. Repli heuristique garanti.
+        """
+        ctx = {
+            "ip": ip,
+            "verdict": risk.verdict,
+            "score": risk.score,
+            "confidence": risk.confidence,
+            "level": risk.level,
+            "factors": risk.factors,
+            "geo": {
+                "country": geo.country, "city": geo.city,
+                "isp": geo.isp, "org": geo.org, "asn": geo.asn,
+                "is_proxy": geo.is_proxy, "is_hosting": geo.is_hosting,
+            },
+            "abuse": {"confidence": abuse.confidence_score, "reports": abuse.total_reports,
+                      "categories": abuse.categories},
+            "virustotal": {"malicious": vt.malicious, "suspicious": vt.suspicious},
+            "attack_profile": {
+                "type": profile.type, "sub_type": profile.sub_type,
+                "intensity": profile.intensity, "alert_count": profile.alert_count,
+                "targeted_services": profile.targeted_services,
+            },
+            "recommended_actions": [a.model_dump() for a in risk.recommended_actions],
+        }
+        try:
+            return await llm_analyze(ctx)
+        except Exception as e:
+            logger.warning("Analyse IA échouée (%s) — rapport sans IA", e)
+            return AiAnalysis(
+                summary=f"Verdict {risk.verdict} (score {risk.score}/100).",
+                narrative="Analyse IA indisponible.",
+                generated_by="unavailable",
+            )

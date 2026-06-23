@@ -8,6 +8,7 @@ import {
   ArrowLeft, Search, Globe, Shield, AlertTriangle, Server,
   MapPin, Building2, Wifi, Clock, Activity, ExternalLink,
   CheckCircle, XCircle, HelpCircle, Zap, Eye,
+  Brain, Sparkles, RefreshCw, ShieldCheck, ShieldAlert,
 } from "lucide-react";
 import { investigationApi } from "../services/api";
 import { format, formatDistanceToNow } from "date-fns";
@@ -74,6 +75,30 @@ function SeverityBadge({ level }) {
     <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${styles[level] || styles.unknown}`}>
       {labels[level] || level}
     </span>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Verdict 3 états (façon Qevlar) — malicious / benign / inconclusive
+// ---------------------------------------------------------------------------
+function VerdictBadge({ verdict, confidence }) {
+  const map = {
+    malicious:    { label: "MALVEILLANT",  icon: ShieldAlert, cls: "bg-red-500/15 text-red-300 border-red-500/40" },
+    benign:       { label: "BÉNIN",        icon: ShieldCheck, cls: "bg-green-500/15 text-green-300 border-green-500/40" },
+    inconclusive: { label: "INDÉTERMINÉ",  icon: HelpCircle,  cls: "bg-yellow-500/15 text-yellow-300 border-yellow-500/40" },
+  };
+  const m = map[verdict] || map.inconclusive;
+  const Icon = m.icon;
+  return (
+    <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border ${m.cls}`}>
+      <Icon size={18} />
+      <div className="flex flex-col leading-tight">
+        <span className="text-sm font-bold">{m.label}</span>
+        {typeof confidence === "number" && (
+          <span className="text-[10px] opacity-80">confiance {confidence}%</span>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -167,6 +192,19 @@ export default function Investigation() {
   const [error, setError]     = useState(null);
   const [blocking, setBlocking] = useState(false);
   const [blocked, setBlocked]   = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const data = await investigationApi.investigate(ip, true);
+      setReport(data);
+    } catch (e) {
+      setError(e.message || "Erreur lors de la ré-analyse");
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
     const fetch = async () => {
@@ -260,12 +298,22 @@ export default function Investigation() {
     <div className="p-6 space-y-6 max-w-6xl mx-auto">
 
       {/* Navigation */}
-      <button
-        onClick={() => navigate(-1)}
-        className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm"
-      >
-        <ArrowLeft size={15} /> Retour
-      </button>
+      <div className="flex items-center justify-between">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm"
+        >
+          <ArrowLeft size={15} /> Retour
+        </button>
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="flex items-center gap-2 text-indigo-300 hover:text-indigo-200 disabled:opacity-50 transition-colors text-sm bg-indigo-500/10 border border-indigo-500/30 rounded-lg px-3 py-1.5"
+        >
+          <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
+          {refreshing ? "Ré-analyse…" : "Ré-analyser (IA)"}
+        </button>
+      </div>
 
       {/* ===== EN-TÊTE ===== */}
       <div className="bg-gradient-to-r from-slate-900 to-slate-800/80 border border-slate-700/50 rounded-2xl p-6">
@@ -303,14 +351,57 @@ export default function Investigation() {
             )}
           </div>
 
-          {/* Jauge de risque */}
+          {/* Jauge de risque + verdict */}
           <div className="flex flex-col items-center gap-3">
             <RiskGauge score={risk.score} level={risk.level} />
             <AttackTypeBadge type={profile.type} />
+            {risk.verdict && <VerdictBadge verdict={risk.verdict} confidence={risk.confidence} />}
           </div>
 
         </div>
       </div>
+
+      {/* ===== ANALYSE IA (analyste autonome borné) ===== */}
+      {report.ai && (
+        <div className="bg-gradient-to-br from-indigo-950/40 to-slate-900/60 border border-indigo-700/40 rounded-2xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-white font-semibold text-sm flex items-center gap-2">
+              <Brain size={16} className="text-indigo-400" />
+              Analyse IA — Analyste autonome
+            </h3>
+            <span className="text-[10px] text-slate-400 bg-slate-800/80 px-2 py-1 rounded-full flex items-center gap-1">
+              <Sparkles size={10} /> {report.ai.generated_by}
+            </span>
+          </div>
+
+          {report.ai.summary && (
+            <p className="text-slate-100 text-sm font-medium mb-3">{report.ai.summary}</p>
+          )}
+          {report.ai.narrative && (
+            <p className="text-slate-300 text-sm leading-relaxed whitespace-pre-line">
+              {report.ai.narrative}
+            </p>
+          )}
+
+          {report.ai.recommended_actions?.length > 0 && (
+            <div className="mt-4">
+              <p className="text-slate-400 text-xs mb-2">Actions de remédiation suggérées :</p>
+              <ul className="space-y-1.5">
+                {report.ai.recommended_actions.map((a, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-slate-200">
+                    <CheckCircle size={13} className="text-indigo-400 flex-shrink-0 mt-0.5" /> {a}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <p className="mt-4 text-[10px] text-slate-500 italic">
+            Le verdict ({risk.verdict}, {risk.confidence}% de confiance) est calculé de façon
+            déterministe. L'IA rédige l'analyse — elle ne décide pas du verdict.
+          </p>
+        </div>
+      )}
 
       {/* ===== GRILLE PRINCIPALE ===== */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">

@@ -10,7 +10,9 @@ import httpx
 import redis.asyncio as redis
 
 from api.core.config import settings
+from api.core.http import get_http_client
 from api.services.opensearch import OpenSearchClient
+from api.services.scoring import compute_risk_score
 
 logger = logging.getLogger(__name__)
 
@@ -57,8 +59,11 @@ class EnrichmentService:
             "virustotal": results[1] if not isinstance(results[1], Exception) else None,
         }
 
-        # Score de risque agrégé
-        enrichment["risk_score"] = self._compute_risk(enrichment)
+        # Score de risque agrégé (scorer unifié — identique à l'investigation OSINT)
+        assessment = compute_risk_score(enrichment)
+        enrichment["risk_score"] = assessment.score
+        enrichment["verdict"]    = assessment.verdict
+        enrichment["confidence"] = assessment.confidence
 
         # Mise en cache
         await self._cache_result(ip, enrichment)
@@ -85,7 +90,7 @@ class EnrichmentService:
         headers = {"Key": settings.ABUSEIPDB_KEY, "Accept": "application/json"}
         params = {"ipAddress": ip, "maxAgeInDays": 90, "verbose": True}
 
-        async with httpx.AsyncClient(timeout=10) as client:
+        async with get_http_client(timeout=10) as client:
             r = await client.get(
                 "https://api.abuseipdb.com/api/v2/check",
                 headers=headers,
@@ -114,7 +119,7 @@ class EnrichmentService:
             return None
 
         headers = {"x-apikey": settings.VIRUSTOTAL_KEY}
-        async with httpx.AsyncClient(timeout=10) as client:
+        async with get_http_client(timeout=10) as client:
             r = await client.get(
                 f"https://www.virustotal.com/api/v3/ip_addresses/{ip}",
                 headers=headers,
@@ -141,7 +146,7 @@ class EnrichmentService:
             return
 
         headers = {"x-apikey": settings.VIRUSTOTAL_KEY}
-        async with httpx.AsyncClient(timeout=15) as client:
+        async with get_http_client(timeout=15) as client:
             try:
                 r = await client.get(
                     f"https://www.virustotal.com/api/v3/files/{file_hash}",
@@ -169,30 +174,8 @@ class EnrichmentService:
     # Score de risque agrégé
     # ----------------------------------------------------------
     def _compute_risk(self, enrichment: dict) -> int:
-        """
-        Score de risque de 0 à 100.
-        60% basé sur AbuseIPDB, 40% sur VirusTotal.
-        """
-        score = 0.0
-
-        if enrichment.get("abuseipdb"):
-            abuse = enrichment["abuseipdb"]
-            score += abuse.get("abuse_score", 0) * 0.6
-            if abuse.get("is_tor"):
-                score += 10  # Bonus malveillance pour Tor
-
-        if enrichment.get("virustotal"):
-            vt = enrichment["virustotal"]
-            total = sum([
-                vt.get("malicious", 0),
-                vt.get("suspicious", 0),
-                vt.get("harmless", 0),
-                vt.get("undetected", 0),
-            ]) or 1
-            vt_score = (vt.get("malicious", 0) / total) * 100
-            score += vt_score * 0.4
-
-        return min(int(score), 100)
+        """Score 0-100 — délègue au scorer unifié (services.scoring)."""
+        return compute_risk_score(enrichment).score
 
     # ----------------------------------------------------------
     # Cache et persistence
