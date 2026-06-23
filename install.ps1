@@ -25,7 +25,7 @@ function New-Pass {
   $b=New-Object byte[] 24
   [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b)
   $s=([Convert]::ToBase64String($b)) -replace '[^A-Za-z0-9]',''
-  return ($s.Substring(0,[Math]::Min(24,$s.Length)) + 'Aa1@')
+  return ($s.Substring(0,[Math]::Min(24,$s.Length)) + 'Aa1!')
 }
 
 Write-Host ""
@@ -71,6 +71,9 @@ if (-not (Test-Path ".env")) {
     "JWT_ALGORITHM=HS256",
     "ENVIRONMENT=production",
     "SOC_DOMAIN=$Domain",
+    "NETWORK_INTERFACE=eth0",
+    "WAZUH_API_USER=wazuh-wui",
+    "DASHBOARD_USERNAME=kibanaserver",
     "",
     "ADMIN_USERNAME=$AdminUser",
     "ADMIN_PASSWORD=$AdminPass",

@@ -2,8 +2,9 @@
 
 ## Prérequis
 
-- **Hôte** : Ubuntu 22.04 (VM Proxmox recommandée), 4 vCPU / 8 Go RAM minimum
-  (16 Go conseillés si l'IA locale Ollama est activée).
+- **Hôte** : Ubuntu 22.04 (VM Proxmox recommandée), 4 vCPU / **8 Go RAM minimum**,
+  **16 Go conseillés** (et requis si le profil `ai`/Ollama est activé). Les
+  `mem_limit` plafonnent OpenSearch/Logstash/Wazuh pour éviter l'OOM.
 - **Docker** + **Docker Compose v2**.
 - Accès réseau aux interfaces à superviser (pour Suricata en `network_mode: host`).
 - `vm.max_map_count=262144` requis par OpenSearch :
@@ -49,12 +50,15 @@ WAZUH_API_PASSWORD=...
 > aléatoire à chaque démarrage → tous les jetons (et la clé Ed25519 du JWT PQC) changent
 > à chaque redémarrage.
 
-## 2. Générer les certificats TLS
+## 2. Certificats TLS
 
-```bash
-./scripts/generate_certs.sh        # certificat auto-signé pour soc.lan
-# En production : remplacer par un certificat Let's Encrypt / interne dans nginx/certs/
-```
+Aucune action requise pour démarrer : **Nginx génère un certificat auto-signé au
+premier lancement** s'il est absent (CN = `SOC_DOMAIN`). En production, déposer un
+vrai certificat (Let's Encrypt / interne) dans `nginx/certs/soc.crt` + `soc.key`.
+
+> ⚠️ **Interface Suricata** : sur une VM Proxmox/Ubuntu, le NIC est souvent `ens18`
+> (pas `eth0`). `install.sh` le détecte ; en manuel, fixez `NETWORK_INTERFACE` dans
+> `.env` (vérifier avec `ip -br link`), sinon Suricata redémarre en boucle.
 
 ## 3. Démarrer la stack
 

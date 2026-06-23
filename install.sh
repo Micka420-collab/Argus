@@ -53,7 +53,9 @@ gen_hex()  { if have openssl; then openssl rand -hex 32; else head -c32 /dev/ura
 gen_pass() { # mot de passe fort (≥ classes requises par OpenSearch)
   local base
   if have openssl; then base="$(openssl rand -base64 24)"; else base="$(head -c24 /dev/urandom | base64)"; fi
-  echo "$(printf '%s' "$base" | tr -dc 'A-Za-z0-9' | head -c 24)Aa1@"
+  # Suffixe « Aa1! » garantit maj/min/chiffre/spécial ; « ! » est URL-safe
+  # (contrairement à @ : / qui cassent REDIS_URL).
+  echo "$(printf '%s' "$base" | tr -dc 'A-Za-z0-9' | head -c 24)Aa1!"
 }
 
 # ============================================================
@@ -120,6 +122,11 @@ if [ ! -f .env ]; then
   ABUSEIPDB_KEY="$(ask "Clé AbuseIPDB (optionnel, Entrée pour ignorer)" "")"
   VIRUSTOTAL_KEY="$(ask "Clé VirusTotal (optionnel, Entrée pour ignorer)" "")"
 
+  # Interface réseau pour Suricata (Proxmox/Ubuntu = souvent ens18, pas eth0)
+  IFACE="$(ip route show default 2>/dev/null | awk '{print $5; exit}')"
+  IFACE="${IFACE:-eth0}"
+  info "Interface réseau détectée : $IFACE"
+
   info "Génération des secrets…"
   SECRET_KEY="$(gen_hex)"
   ADMIN_PASSWORD="$(gen_pass)"
@@ -134,6 +141,9 @@ SECRET_KEY=${SECRET_KEY}
 JWT_ALGORITHM=HS256
 ENVIRONMENT=production
 SOC_DOMAIN=${DOMAIN}
+NETWORK_INTERFACE=${IFACE}
+WAZUH_API_USER=wazuh-wui
+DASHBOARD_USERNAME=kibanaserver
 
 ADMIN_USERNAME=${ADMIN_USER}
 ADMIN_PASSWORD=${ADMIN_PASSWORD}

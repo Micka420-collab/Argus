@@ -10,7 +10,11 @@
 # `ssl_ecdh_curve X25519MLKEM768:...` de nginx.conf (le reste fonctionne).
 # ============================================================
 FROM nginx:1.29-alpine
+RUN apk add --no-cache openssl
 COPY nginx.conf /etc/nginx/nginx.conf
-# Les certificats sont montés depuis le volume
-RUN mkdir -p /etc/nginx/certs
+COPY docker-entrypoint-certs.sh /docker-entrypoint-certs.sh
+# Les certificats sont montés depuis le volume ; l'entrypoint en génère un
+# auto-signé au démarrage s'il est absent (cf. docker-entrypoint-certs.sh).
+RUN mkdir -p /etc/nginx/certs && chmod +x /docker-entrypoint-certs.sh
 EXPOSE 80 443
+ENTRYPOINT ["/docker-entrypoint-certs.sh"]
