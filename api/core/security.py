@@ -49,18 +49,34 @@ ACCESS_TOKEN_EXPIRE  = timedelta(minutes=30)
 REFRESH_TOKEN_EXPIRE = timedelta(days=7)
 
 def create_access_token(data: dict) -> str:
+    if settings.PQC_JWT:
+        from api.core import pqc
+        return pqc.create_token(data, ACCESS_TOKEN_EXPIRE, "access")
     payload = data.copy()
     payload["exp"] = datetime.utcnow() + ACCESS_TOKEN_EXPIRE
     payload["type"] = "access"
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=ALGORITHM)
 
 def create_refresh_token(data: dict) -> str:
+    if settings.PQC_JWT:
+        from api.core import pqc
+        return pqc.create_token(data, REFRESH_TOKEN_EXPIRE, "refresh")
     payload = data.copy()
     payload["exp"] = datetime.utcnow() + REFRESH_TOKEN_EXPIRE
     payload["type"] = "refresh"
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=ALGORITHM)
 
 def decode_token(token: str) -> dict:
+    if settings.PQC_JWT:
+        from api.core import pqc
+        try:
+            return pqc.decode_token(token)
+        except Exception:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token invalide ou expiré",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
     try:
         return jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
     except JWTError:

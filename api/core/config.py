@@ -97,6 +97,7 @@ class Settings(BaseSettings):
     # ----------------------------------------------------------
     JWT_ALGORITHM: str = "HS256"
     PQC_JWT: bool = False                  # signatures JWT hybrides Ed25519+ML-DSA
+    PQC_KEYS_DIR: str = "/var/lib/argus/pqc"  # persistance des clés ML-DSA (si liboqs)
     TLS_GROUPS: str = "X25519MLKEM768:X25519:secp256r1"  # groupes TLS edge (hybride PQC)
     TLS_CERT_SIG: str = "RSA-4096"         # type de signature du certificat serveur
 

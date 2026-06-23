@@ -186,10 +186,18 @@ def self_assessment() -> ReadinessReport:
 
     # Jeton d'authentification (JWT)
     if pqc_jwt:
+        try:
+            from api.core import pqc as _pqc
+            alg = _pqc.active_algorithm()
+        except Exception:
+            alg = "Ed25519"
+        is_hybrid = "ML-DSA" in alg or "Dilithium" in alg
         components.append(CryptoComponent(
-            name="Signature des jetons (JWT)", value="Ed25519 + ML-DSA-65 (hybride)",
-            kind="token", status="hybrid", severity="none",
-            note="JWT signé en hybride post-quantique."))
+            name="Signature des jetons (JWT)", value=alg, kind="token",
+            status="hybrid" if is_hybrid else "safe",
+            severity="none" if is_hybrid else "low",
+            note=("JWT signé en hybride post-quantique (Ed25519 + ML-DSA)." if is_hybrid
+                  else "JWT Ed25519 (asymétrique) — installer liboqs pour ajouter ML-DSA.")))
     elif str(jwt_alg).upper().startswith("HS"):
         components.append(CryptoComponent(
             name="Signature des jetons (JWT)", value=str(jwt_alg), kind="token",

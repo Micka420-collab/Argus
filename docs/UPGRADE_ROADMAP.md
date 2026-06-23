@@ -19,8 +19,10 @@ au quantique**, en s'inspirant de quatre acteurs et en les recréant en
 > trace + corrélation/beaconing) et feedback RAG (`services/feedback.py`), routeur `/api/v1/ai/*`,
 > page **AI Console** ; **Pilier D** module **VDP / Bug-Bounty** complet (`models/vdp.py`,
 > `services/vdp.py` avec **CVSS v3.1** maison + grille de récompenses, `services/vdp_triage.py`,
-> `routers/vdp.py`, rôles `RESEARCHER`/`TRIAGER`, pages **Vdp**) ; **refonte UI « Obsidian Signal »**
-> (shell sidebar/topbar, landing publique). Restent en Phase 2/3 : JWT PQC, mesh, ASM/CTEM.
+> `routers/vdp.py`, rôles `RESEARCHER`/`TRIAGER`, pages **Vdp**) ; **JWT hybride post-quantique**
+> (`core/pqc.py` : Ed25519 déterministe depuis SECRET_KEY + ML-DSA optionnel via liboqs, repli HS256,
+> `PQC_JWT=true`) ; **refonte UI « Obsidian Signal »** (shell sidebar/topbar, landing publique).
+> Restent en Phase 2/3 : mesh WireGuard+Rosenpass, ASM/CTEM, PKI mTLS interne.
 
 ---
 

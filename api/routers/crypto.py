@@ -41,3 +41,18 @@ async def inventory(
     _user=Depends(require_analyst),
 ) -> CbomReport:
     return await build_cbom(period_hours)
+
+
+@router.get(
+    "/jwt-info",
+    summary="Algorithme de signature des jetons d'authentification",
+    description="Indique si les JWT sont signés en hybride post-quantique (Ed25519 + ML-DSA) et expose les clés publiques.",
+)
+async def jwt_info(_user=Depends(require_analyst)):
+    from api.core.config import settings
+    if not settings.PQC_JWT:
+        return {"pqc_jwt": False, "algorithm": "HS256",
+                "note": "JWT symétrique HS256 (résistant au quantique mais non-asymétrique). "
+                        "Activer PQC_JWT=true pour des signatures hybrides Ed25519+ML-DSA."}
+    from api.core import pqc
+    return {"pqc_jwt": True, **pqc.public_keys()}

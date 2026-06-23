@@ -152,9 +152,10 @@ Argus/
 Détail complet dans [`docs/UPGRADE_ROADMAP.md`](docs/UPGRADE_ROADMAP.md).
 
 - **✅ Livré** — verdict 3 états + analyse IA, agent autonome (graphe + RAG), scanner PQC + CBOM,
-  TLS hybride, égress anonymisé, **module VDP/Bug-Bounty (triage assisté + CVSS v3.1 + récompenses)**,
-  refonte UI complète + landing.
-- **🚧 Phase 2/3** — JWT hybride Ed25519+ML-DSA, mesh WireGuard+Rosenpass, ASM/CTEM, sync tickets (n8n).
+  TLS hybride, **JWT hybride post-quantique (Ed25519 + ML-DSA, repli HS256)**, égress anonymisé,
+  **module VDP/Bug-Bounty (triage assisté + CVSS v3.1 + récompenses)**, refonte UI complète + landing.
+- **🚧 Phase 2/3** — mesh WireGuard+Rosenpass (plan de management sans port entrant), ASM/CTEM,
+  sync tickets (n8n), PKI mTLS interne.
 
 ---
 
