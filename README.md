@@ -95,6 +95,8 @@ git clone https://github.com/Micka420-collab/Argus.git ; cd Argus
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
+> Droits **root** requis (Docker, `sysctl`) : le script **s'auto-élève via `sudo`**
+> (un mot de passe sudo peut être demandé) — inutile de préfixer par `sudo`.
 > Installation sans aucune question (valeurs par défaut sûres) : `ARGUS_YES=1 ./install.sh`
 > (ou `.\install.ps1 -Yes`).
 

@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # ============================================================
 #  Argus — Installeur guidé (SOC autonome & post-quantique)
+#  Nécessite les droits root (Docker, sysctl) : le script S'AUTO-ÉLÈVE via sudo
+#  (un mot de passe sudo pourra être demandé). Pas besoin de préfixer par sudo.
 #  Usage :
-#    ./install.sh
+#    ./install.sh                 (ou : sudo ./install.sh)
 #  En une commande (clone + install) :
 #    curl -fsSL https://raw.githubusercontent.com/Micka420-collab/Argus/main/install.sh | bash
 #  Sans questions (valeurs par défaut sûres) :
@@ -11,6 +13,7 @@
 set -euo pipefail
 
 REPO_URL="https://github.com/Micka420-collab/Argus.git"
+RAW_URL="https://raw.githubusercontent.com/Micka420-collab/Argus/main/install.sh"
 C_RESET="\033[0m"; C_B="\033[1m"; C_BLUE="\033[38;5;75m"; C_GREEN="\033[38;5;78m"
 C_YEL="\033[38;5;221m"; C_RED="\033[38;5;203m"; C_DIM="\033[2m"
 
@@ -58,17 +61,32 @@ gen_pass() { # mot de passe fort (≥ classes requises par OpenSearch)
   echo "$(printf '%s' "$base" | tr -dc 'A-Za-z0-9' | head -c 24)Aa1!"
 }
 
+# ---- Droits administrateur requis (Docker, sysctl, installation) ----------
+# S'auto-élève en root via sudo. Gère les deux cas : fichier (./install.sh) et
+# pipe (curl … | bash, où $0 vaut « bash » → on re-télécharge sous sudo).
+if [ "$(id -u)" -ne 0 ]; then
+  if have sudo; then
+    info "Argus nécessite les droits administrateur — élévation via sudo…"
+    case "$0" in
+      */install.sh|install.sh) exec sudo -E bash "$0" "$@" ;;
+      *)                       exec sudo -E bash -c "$(curl -fsSL "$RAW_URL")" ;;
+    esac
+  else
+    die "Droits root requis. Relancez en root (su -) puis 'bash install.sh', ou installez sudo."
+  fi
+fi
+
 # ============================================================
 banner
 
 # ---- 1. Prérequis ----------------------------------------------------------
-info "Vérification des prérequis…"
+info "Vérification des prérequis… (exécution en root)"
 
 if ! have docker; then
   warn "Docker n'est pas installé."
   if [ "$(uname -s)" = "Linux" ] && ask_yn "Installer Docker automatiquement (get.docker.com) ?" "y"; then
     curl -fsSL https://get.docker.com | sh || die "Échec de l'installation de Docker."
-    sudo usermod -aG docker "$USER" 2>/dev/null || true
+    usermod -aG docker "${SUDO_USER:-$USER}" 2>/dev/null || true
     ok "Docker installé. (Déconnexion/reconnexion conseillée pour les droits docker.)"
   else
     die "Docker requis. Voir https://docs.docker.com/get-docker/"
@@ -85,9 +103,10 @@ if [ "$(uname -s)" = "Linux" ]; then
   cur="$(cat /proc/sys/vm/max_map_count 2>/dev/null || echo 0)"
   if [ "$cur" -lt 262144 ]; then
     warn "vm.max_map_count=$cur (OpenSearch en exige 262144)."
-    if ask_yn "Le corriger maintenant (sudo) ?" "y"; then
-      sudo sysctl -w vm.max_map_count=262144 || warn "Échec sysctl — à régler manuellement."
-      echo 'vm.max_map_count=262144' | sudo tee -a /etc/sysctl.conf >/dev/null 2>&1 || true
+    if ask_yn "Le corriger maintenant ?" "y"; then
+      sysctl -w vm.max_map_count=262144 || warn "Échec sysctl — à régler manuellement."
+      grep -q '^vm.max_map_count' /etc/sysctl.conf 2>/dev/null \
+        || echo 'vm.max_map_count=262144' >> /etc/sysctl.conf 2>/dev/null || true
       ok "vm.max_map_count corrigé."
     fi
   fi
