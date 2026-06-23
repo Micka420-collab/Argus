@@ -12,8 +12,8 @@ class Settings(BaseSettings):
     # ----------------------------------------------------------
     # Application
     # ----------------------------------------------------------
-    APP_NAME: str = "SOC Platform"
-    APP_VERSION: str = "2.0.0"
+    APP_NAME: str = "Argus SOC"
+    APP_VERSION: str = "3.0.0"
     ENVIRONMENT: str = "production"
     DEBUG: bool = False
     SECRET_KEY: str = secrets.token_hex(32)

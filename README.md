@@ -141,11 +141,24 @@ Argus/
 │   └── src/{components,pages,services}  # Sidebar/Topbar, AiConsole, Landing, Crypto…
 ├── nginx/                    # Reverse proxy TLS hybride ML-KEM
 ├── wazuh/ · suricata/ · logstash/   # détection & pipeline
-├── docs/UPGRADE_ROADMAP.md   # feuille de route 4 piliers (phases 1→3)
+├── docs/                     # 📚 Documentation complète (voir docs/README.md)
 └── docker-compose.yml
 ```
 
 ---
+
+## 📚 Documentation
+
+Documentation technique complète dans [`docs/`](docs/README.md) :
+
+| Doc | Contenu |
+|---|---|
+| [Architecture](docs/ARCHITECTURE.md) | Composants, flux, les 4 piliers, structure du code |
+| [Déploiement](docs/DEPLOYMENT.md) | Installation, TLS, activation IA/PQC, agents |
+| [Configuration](docs/CONFIGURATION.md) | Référence des variables d'environnement |
+| [API](docs/API.md) | Endpoints REST + WebSocket, rôles |
+| [Sécurité](docs/SECURITY.md) | RBAC, JWT PQC, TLS hybride, durcissement |
+| [Feuille de route](docs/UPGRADE_ROADMAP.md) | Phases 1 → 3 |
 
 ## 🗺️ Feuille de route
 
