@@ -109,6 +109,14 @@ docker compose up -d
 
 Dashboard : `https://localhost` · présentation publique : `https://localhost/welcome`
 
+### 🔄 Mise à jour & 🗑️ Désinstallation
+
+```bash
+./update.sh        # met à jour (git pull + rebuild + restart), préserve données & secrets
+./uninstall.sh     # arrête la stack ; propose de supprimer données/images
+```
+Windows : `.\update.ps1` · `.\uninstall.ps1`.
+
 ### Activer l'analyste IA (optionnel)
 
 L'IA fonctionne **par défaut en mode heuristique** (aucune config). Pour un LLM local :
