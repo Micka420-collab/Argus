@@ -24,14 +24,33 @@ const VALUES = [
 ];
 
 const PILLARS = [
-  { Icon: Bot,      kicker: "IA autonome",      t: "Des investigations qui se referment seules",
+  { id: "ai",    Icon: Bot,      kicker: "IA autonome",      t: "Des investigations qui se referment seules",
     d: "Un agent raisonne sur la télémétrie, le threat-intel et le contexte des assets pour rendre un verdict malveillant / bénin / indéterminé avec un rapport de preuves — et apprend de vos corrections." },
-  { Icon: KeyRound, kicker: "Post-quantique",   t: "Une crypto qui survit à la menace quantique",
+  { id: "pqc",   Icon: KeyRound, kicker: "Post-quantique",   t: "Une crypto qui survit à la menace quantique",
     d: "TLS hybride ML-KEM et CBOM en direct donnent une posture cryptographique notée en continu sur chaque asset." },
-  { Icon: EyeOff,   kicker: "OSINT anonymisé",  t: "Enquêter sans s'exposer",
+  { id: "osint", Icon: EyeOff,   kicker: "OSINT anonymisé",  t: "Enquêter sans s'exposer",
     d: "L'enrichissement threat-intel sort par un égress anonymisé : investiguer un adversaire ne le prévient jamais." },
-  { Icon: Bug,      kicker: "VDP / Bug-Bounty", t: "Une porte d'entrée pour les chercheurs",
+  { id: "vdp",   Icon: Bug,      kicker: "VDP / Bug-Bounty", t: "Une porte d'entrée pour les chercheurs",
     d: "Divulgation de vulnérabilités et bug bounty intégrés routent les rapports directement dans votre pipeline d'incidents." },
+];
+
+const CONTACT = "mailto:micka.delcato.rp@gmail.com";
+const FOOTER = [
+  { h: "Produit", links: [
+    { label: "Plateforme", href: "#platform" },
+    { label: "Capacités", href: "#pillars" },
+    { label: "Ouvrir la console", to: "/login" },
+  ]},
+  { h: "Capacités", links: [
+    { label: "Analyste IA", href: "#ai" },
+    { label: "Post-quantique", href: "#pqc" },
+    { label: "VDP / Bug-Bounty", href: "#vdp" },
+  ]},
+  { h: "Projet", links: [
+    { label: "Code source", href: GITHUB_URL, ext: true },
+    { label: "Licence", href: GITHUB_URL + "/blob/main/LICENSE", ext: true },
+    { label: "Contact", href: CONTACT },
+  ]},
 ];
 
 function MiniMock() {
@@ -112,7 +131,7 @@ export default function Landing() {
       </section>
 
       {/* Value props */}
-      <section id="platform" className="mx-auto max-w-landing px-6 py-24">
+      <section id="platform" className="scroll-mt-24 mx-auto max-w-landing px-6 py-24">
         <div className="text-center mb-14">
           <p className="eyebrow">Pourquoi Argus</p>
           <h2 className="text-h1 mt-2 text-balance">Des résultats, pas plus de dashboards.</h2>
@@ -131,9 +150,9 @@ export default function Landing() {
       </section>
 
       {/* Pillars */}
-      <section id="pillars" className="mx-auto max-w-landing px-6 py-24 space-y-20">
-        {PILLARS.map(({ Icon, kicker, t, d }, i) => (
-          <div key={t} className={`grid lg:grid-cols-2 gap-10 items-center ${i % 2 ? "lg:[&>*:first-child]:order-2" : ""}`}>
+      <section id="pillars" className="scroll-mt-24 mx-auto max-w-landing px-6 py-24 space-y-20">
+        {PILLARS.map(({ id, Icon, kicker, t, d }, i) => (
+          <div key={t} id={id} className={`scroll-mt-24 grid lg:grid-cols-2 gap-10 items-center ${i % 2 ? "lg:[&>*:first-child]:order-2" : ""}`}>
             <div>
               <span className="badge-neutral"><Icon className="h-3.5 w-3.5 text-accent" /> {kicker}</span>
               <h2 className="text-h1 mt-4 text-balance">{t}</h2>
@@ -159,7 +178,7 @@ export default function Landing() {
       </section>
 
       {/* Open source */}
-      <section id="oss" className="mx-auto max-w-landing px-6 py-24 text-center">
+      <section id="oss" className="scroll-mt-24 mx-auto max-w-landing px-6 py-24 text-center">
         <div className="card-glass max-w-2xl mx-auto p-8">
           <span className="badge-neutral mx-auto"><GitBranch className="h-3.5 w-3.5" /> Source-available</span>
           <h2 className="text-h1 mt-4">Open source. Non-commercial.</h2>
@@ -183,23 +202,19 @@ export default function Landing() {
             </div>
             <p className="text-meta text-muted mt-3 max-w-xs">SOC autonome et post-quantique. Auto-hébergé.</p>
           </div>
-          {[["Produit", ["Plateforme", "AI Console", "Post-Quantum"]],
-            ["Sécurité", ["VDP", "Bug Bounty", "CBOM"]],
-            ["Projet", ["Licence", "GitHub", "Contact"]]].map(([h, links]) => (
-            <div key={h}>
-              <p className="eyebrow mb-3">{h}</p>
+          {FOOTER.map((col) => (
+            <div key={col.h}>
+              <p className="eyebrow mb-3">{col.h}</p>
               <ul className="space-y-2 text-body text-muted">
-                {links.map((l) => {
-                  const href = l === "GitHub" ? GITHUB_URL
-                    : l === "Licence" ? GITHUB_URL + "/blob/main/LICENSE"
-                    : "#oss";
-                  const isExt = href.startsWith("http");
-                  return (
-                    <li key={l}>
-                      <a href={href} {...(isExt ? ext : {})} className="hover:text-text">{l}</a>
-                    </li>
-                  );
-                })}
+                {col.links.map((l) => (
+                  <li key={l.label}>
+                    {l.to ? (
+                      <Link to={l.to} className="hover:text-text">{l.label}</Link>
+                    ) : (
+                      <a href={l.href} {...(l.ext ? ext : {})} className="hover:text-text">{l.label}</a>
+                    )}
+                  </li>
+                ))}
               </ul>
             </div>
           ))}

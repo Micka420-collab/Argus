@@ -19,6 +19,7 @@
    ---------------------------------------------------------------- */
 @layer base {
   :root { color-scheme: dark; }
+  html { scroll-behavior: smooth; }
 
   body {
     @apply bg-bg text-text font-sans antialiased;
