@@ -187,6 +187,9 @@ Argus/
 
 ## 📚 Documentation
 
+📄 **Version Word tout-en-un** : [`docs/Argus_Documentation.docx`](docs/Argus_Documentation.docx)
+(régénérable via `python scripts/gen_documentation.py`).
+
 Documentation technique complète dans [`docs/`](docs/README.md) :
 
 | Doc | Contenu |
