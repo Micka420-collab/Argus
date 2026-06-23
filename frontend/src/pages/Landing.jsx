@@ -8,6 +8,10 @@ import {
   Bot, KeyRound, EyeOff, Bug, GitBranch, Github,
 } from "lucide-react";
 
+const GITHUB_URL = "https://github.com/Micka420-collab/Argus";
+// Liens externes : nouvel onglet pour ne jamais quitter l'app (évite le retour arrière)
+const ext = { target: "_blank", rel: "noreferrer noopener" };
+
 const VALUES = [
   { Icon: BellOff,   t: "Éliminer la surcharge d'alerte",
     d: "Chaque alerte est auto-investiguée jusqu'à un verdict — les analystes examinent des conclusions, pas des files." },
@@ -164,7 +168,7 @@ export default function Landing() {
             contactez-nous pour un déploiement commercial.
           </p>
           <div className="mt-6 flex justify-center gap-3">
-            <a href="https://github.com/" className="btn-ghost"><Github className="h-4 w-4" /> Voir le code</a>
+            <a href={GITHUB_URL} {...ext} className="btn-ghost"><Github className="h-4 w-4" /> Voir le code</a>
             <Link to="/login" className="btn-primary">Ouvrir la console <ArrowRight className="h-4 w-4" /></Link>
           </div>
         </div>
@@ -185,7 +189,17 @@ export default function Landing() {
             <div key={h}>
               <p className="eyebrow mb-3">{h}</p>
               <ul className="space-y-2 text-body text-muted">
-                {links.map((l) => <li key={l}><a href="#oss" className="hover:text-text">{l}</a></li>)}
+                {links.map((l) => {
+                  const href = l === "GitHub" ? GITHUB_URL
+                    : l === "Licence" ? GITHUB_URL + "/blob/main/LICENSE"
+                    : "#oss";
+                  const isExt = href.startsWith("http");
+                  return (
+                    <li key={l}>
+                      <a href={href} {...(isExt ? ext : {})} className="hover:text-text">{l}</a>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           ))}
