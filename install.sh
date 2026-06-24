@@ -189,6 +189,8 @@ if [ ! -f .env ]; then
 SECRET_KEY=${SECRET_KEY}
 JWT_ALGORITHM=HS256
 ENVIRONMENT=production
+# Chemin hôte du dépôt — requis par l'agent argus-ops (mise à jour/redémarrage)
+ARGUS_HOST_DIR=$(pwd)
 SOC_DOMAIN=${DOMAIN}
 NETWORK_INTERFACE=${IFACE}
 WAZUH_API_USER=wazuh-wui

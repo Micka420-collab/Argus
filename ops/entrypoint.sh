@@ -5,7 +5,8 @@
 # ============================================================
 set -u
 
-REPO="/argus"
+# Chemin hôte réel du dépôt (monté à l'identique). Voir docker-compose.yml.
+REPO="${ARGUS_HOST_DIR:-/opt/argus}"
 QUEUE="argus:ops:queue"
 STATUS="argus:ops:status"
 RHOST="${REDIS_HOST:-redis}"

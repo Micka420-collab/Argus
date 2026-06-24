@@ -304,7 +304,12 @@ services:
   # argus-ops — agent d'exploitation (mise à jour GitHub + redémarrage)
   # SEUL conteneur avec accès au socket Docker. Consomme une file Redis
   # alimentée par soc-api (boutons "Mettre à jour" / "Redémarrer" de l'UI).
-  # Monte le dépôt courant pour pouvoir git pull + docker compose.
+  #
+  # IMPORTANT : le dépôt est monté à SON CHEMIN HÔTE RÉEL (ARGUS_HOST_DIR),
+  # identique dans le conteneur. C'est indispensable : `docker compose up`
+  # résout les bind-mounts relatifs (./suricata/…) en chemins absolus que le
+  # daemon Docker (côté hôte) doit retrouver. ARGUS_HOST_DIR est écrit par
+  # l'installeur (= chemin du dépôt). À défaut, l'update échouera proprement.
   # ----------------------------------------------------------
   argus-ops:
     build:
@@ -312,13 +317,15 @@ services:
       dockerfile: Dockerfile
     hostname: argus-ops
     restart: unless-stopped
+    working_dir: ${ARGUS_HOST_DIR:-/opt/argus}
     environment:
       REDIS_HOST: redis
       REDIS_PORT: "6379"
       REDIS_PASSWORD: ${REDIS_PASSWORD}
+      ARGUS_HOST_DIR: ${ARGUS_HOST_DIR:-/opt/argus}
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock   # contrôle du daemon Docker hôte
-      - ./:/argus                                    # le dépôt (git pull + compose)
+      - /var/run/docker.sock:/var/run/docker.sock                       # daemon Docker hôte
+      - ${ARGUS_HOST_DIR:-/opt/argus}:${ARGUS_HOST_DIR:-/opt/argus}     # dépôt au chemin hôte réel
     depends_on:
       redis:
         condition: service_healthy
