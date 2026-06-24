@@ -247,7 +247,7 @@ services:
       - SYS_NICE
     command: -i ${NETWORK_INTERFACE:-eth0} --af-packet -v
     volumes:
-      - ./suricata/suricata.yaml:/etc/suricata/suricata.yaml:ro
+      - ./suricata/suricata.yaml:/etc/suricata/suricata.yaml
       - suricata_logs:/var/log/suricata
       - suricata_rules:/var/lib/suricata/rules
 
