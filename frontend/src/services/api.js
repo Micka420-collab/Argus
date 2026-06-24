@@ -102,6 +102,10 @@ export const playbooksApi = {
 export const systemApi = {
   health: () => request("/health".replace("/api/v1", "")),
   status: () => request("/status"),
+  info: () => request("/system/info"),
+  opsStatus: () => request("/system/ops-status"),
+  update: () => request("/system/update", { method: "POST" }),
+  restart: () => request("/system/restart", { method: "POST" }),
 };
 
 // ----------------------------------------------------------
@@ -198,4 +202,14 @@ export const cryptoApi = {
   readiness: () => request("/crypto/readiness"),
   /** CBOM observé : inventaire des handshakes TLS vus par Suricata. */
   inventory: (periodHours = 24) => request(`/crypto/inventory?period_hours=${periodHours}`),
+};
+
+// ----------------------------------------------------------
+// Réseau / Machines (agents Wazuh)
+// ----------------------------------------------------------
+export const networkApi = {
+  /** Liste des machines surveillées + résumé d'état. */
+  agents: () => request("/network/agents"),
+  /** Adresse du manager + commandes pour connecter une machine. */
+  enroll: () => request("/network/enroll"),
 };

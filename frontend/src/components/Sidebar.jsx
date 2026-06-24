@@ -6,7 +6,7 @@ import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
   ScanEye, LayoutDashboard, Bell, AlertTriangle, Bot, Atom, Server,
-  BookOpen, ChevronsLeft, LogOut, User, Bug, Target,
+  BookOpen, ChevronsLeft, LogOut, User, Bug, Target, Network, Settings,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -34,8 +34,15 @@ const GROUPS = [
   {
     title: "Inventaire",
     items: [
-      { to: "/assets", label: "Assets", icon: Server },
-      { to: "/rules",  label: "Règles", icon: BookOpen },
+      { to: "/assets",  label: "Assets",   icon: Server },
+      { to: "/network", label: "Machines", icon: Network },
+      { to: "/rules",   label: "Règles",   icon: BookOpen },
+    ],
+  },
+  {
+    title: "Administration",
+    items: [
+      { to: "/system", label: "Système", icon: Settings },
     ],
   },
 ];

@@ -13,6 +13,8 @@ import Crypto from "./pages/Crypto";
 import AiConsole from "./pages/AiConsole";
 import Vdp from "./pages/Vdp";
 import Exposure from "./pages/Exposure";
+import Network from "./pages/Network";
+import System from "./pages/System";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
@@ -99,6 +101,8 @@ function AppShell() {
             <Route path="/ai"              element={<AiConsole />} />
             <Route path="/vdp"             element={<Vdp />} />
             <Route path="/exposure"        element={<Exposure />} />
+            <Route path="/network"         element={<Network />} />
+            <Route path="/system"          element={<System />} />
             <Route path="/investigate/:ip" element={<Investigation />} />
             <Route path="*" element={
               <div className="text-center py-20 text-muted">

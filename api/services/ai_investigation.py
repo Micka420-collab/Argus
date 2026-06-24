@@ -125,7 +125,9 @@ class AiInvestigationAgent:
         except ValueError:
             state["osint_skipped"] = "ip_invalide"
             return
-        report = await self.osint.investigate(ip)
+        # with_ai=False : l'agent rédige lui-même le récit (nœud _report).
+        # Évite un second appel LLM coûteux dans InvestigationService.
+        report = await self.osint.investigate(ip, with_ai=False)
         state["osint"] = report.model_dump()
 
     async def _correlate(self, state: dict) -> None:

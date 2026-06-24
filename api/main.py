@@ -18,6 +18,8 @@ from api.routers import crypto as crypto_router
 from api.routers import ai as ai_router
 from api.routers import vdp as vdp_router
 from api.routers import exposure as exposure_router
+from api.routers import network as network_router
+from api.routers import system as system_router
 from api.services.alerting import AlertEngine
 from api.services.users import ensure_default_admin
 from api.middleware.security import (
@@ -115,6 +117,8 @@ app.include_router(crypto_router.router,         prefix="/api/v1/crypto",      t
 app.include_router(ai_router.router,             prefix="/api/v1/ai",          tags=["Analyste IA"])
 app.include_router(vdp_router.router,            prefix="/api/v1/vdp",         tags=["VDP / Bug-Bounty"])
 app.include_router(exposure_router.router,       prefix="/api/v1/exposure",    tags=["ASM / CTEM"])
+app.include_router(network_router.router,         prefix="/api/v1/network",     tags=["Réseau / Machines"])
+app.include_router(system_router.router,          prefix="/api/v1/system",      tags=["Système"])
 
 
 # ----------------------------------------------------------

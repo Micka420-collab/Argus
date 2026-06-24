@@ -1,4 +1,7 @@
-version: "3.9"
+# Nom de projet fixe : garantit que l'agent argus-ops (qui monte ce dépôt
+# pour exécuter docker compose) pilote EXACTEMENT la même stack, quel que soit
+# le nom du dossier d'installation. Supprime aussi l'avertissement `version`.
+name: argus
 
 # ============================================================
 # SOC Platform — Stack complète
@@ -182,6 +185,7 @@ services:
       # App
       SECRET_KEY: ${SECRET_KEY}
       ENVIRONMENT: ${ENVIRONMENT:-production}
+      SOC_DOMAIN: ${SOC_DOMAIN:-soc.lan}
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Admin@SOC2024!}
       # Redis
@@ -294,6 +298,31 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
+
+  # ----------------------------------------------------------
+  # argus-ops — agent d'exploitation (mise à jour GitHub + redémarrage)
+  # SEUL conteneur avec accès au socket Docker. Consomme une file Redis
+  # alimentée par soc-api (boutons "Mettre à jour" / "Redémarrer" de l'UI).
+  # Monte le dépôt courant pour pouvoir git pull + docker compose.
+  # ----------------------------------------------------------
+  argus-ops:
+    build:
+      context: ./ops
+      dockerfile: Dockerfile
+    hostname: argus-ops
+    restart: unless-stopped
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock   # contrôle du daemon Docker hôte
+      - ./:/argus                                    # le dépôt (git pull + compose)
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - soc-net
 
   # ----------------------------------------------------------
   # Ollama (LLM local pour l'analyste IA — pilier Qevlar)

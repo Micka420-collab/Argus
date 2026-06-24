@@ -213,6 +213,7 @@ export default function AiConsole() {
   const [loading, setLoading] = useState(true);
   const [ip, setIp] = useState("");
   const [running, setRunning] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState(null);
 
@@ -233,8 +234,11 @@ export default function AiConsole() {
   useEffect(() => { load(); }, [load]);
 
   const runIp = async () => {
-    if (!ip.trim()) return;
+    if (!ip.trim() || running) return;
     setRunning(true);
+    setElapsed(0);
+    const t0 = Date.now();
+    const timer = setInterval(() => setElapsed(Math.round((Date.now() - t0) / 1000)), 1000);
     try {
       const report = await aiApi.investigateIp(ip.trim());
       setReports((prev) => [report, ...prev]);
@@ -243,6 +247,7 @@ export default function AiConsole() {
     } catch (e) {
       setToast({ title: "Investigation échouée", desc: e.message });
     } finally {
+      clearInterval(timer);
       setRunning(false);
     }
   };
@@ -280,7 +285,7 @@ export default function AiConsole() {
           </div>
           <button onClick={runIp} disabled={running} className="btn-ai">
             {running ? <Spinner /> : <Bot className="h-4 w-4" />}
-            {running ? "Analyse…" : "Lancer"}
+            {running ? `Analyse… ${elapsed}s` : "Lancer"}
           </button>
         </div>
       </PageHeader>
@@ -307,7 +312,21 @@ export default function AiConsole() {
 
         {/* Rapport */}
         <div>
-          {selected ? (
+          {running ? (
+            <div className="card card-pad flex flex-col items-center text-center gap-3 py-16">
+              <div className="relative">
+                <div className="h-12 w-12 rounded-full border-2 border-accent2/30 border-t-accent2 animate-spin-slow" />
+                <Bot className="h-5 w-5 text-accent2 absolute inset-0 m-auto" />
+              </div>
+              <div>
+                <p className="text-text font-medium">Investigation IA en cours… <span className="tabnum text-accent2">{elapsed}s</span></p>
+                <p className="text-body text-muted mt-1 max-w-md">
+                  Enrichissement OSINT, corrélation des alertes, verdict déterministe puis
+                  rédaction par l'IA locale. Comptez ~30 à 60 s sur CPU — ne fermez pas la page.
+                </p>
+              </div>
+            </div>
+          ) : selected ? (
             <Report report={selected} onFeedback={sendFeedback} busy={busy} />
           ) : !loading ? (
             <EmptyState icon={Clock} title="Sélectionnez une investigation" desc="Choisissez un élément dans la file pour afficher le rapport complet." />

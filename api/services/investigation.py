@@ -188,8 +188,18 @@ class InvestigationService:
     # ------------------------------------------------------------------
     # Point d'entrée public
     # ------------------------------------------------------------------
-    async def investigate(self, ip: str, refresh: bool = False) -> InvestigationReport:
-        logger.info("Investigation OSINT démarrée pour l'IP : %s (refresh=%s)", ip, refresh)
+    async def investigate(
+        self, ip: str, refresh: bool = False, with_ai: bool = True
+    ) -> InvestigationReport:
+        """
+        Investigation OSINT complète sur une IP.
+
+        with_ai=False : ne PAS appeler le LLM pour rédiger le récit (et ne pas
+        mettre en cache le rapport partiel). Utilisé par l'agent autonome, qui
+        rédige lui-même un récit enrichi — évite un DOUBLE appel LLM coûteux.
+        """
+        logger.info("Investigation OSINT démarrée pour l'IP : %s (refresh=%s, ai=%s)",
+                    ip, refresh, with_ai)
 
         # Vérifier le cache Redis pour un rapport complet (TTL 1 heure)
         cache_key = f"investigation:{ip}"
@@ -226,7 +236,7 @@ class InvestigationService:
         vt      = self._parse_virustotal(vt_raw)
         profile = self._build_attack_profile(history, abuse)
         risk    = self._assess_risk(abuse, vt, profile, geo)
-        ai      = await self._ai_analyze(ip, geo, abuse, vt, profile, risk)
+        ai      = await self._ai_analyze(ip, geo, abuse, vt, profile, risk) if with_ai else None
 
         report = InvestigationReport(
             ip=ip,
@@ -240,8 +250,10 @@ class InvestigationService:
             raw_rdap=rdap,
         )
 
-        # Mettre en cache pour 1 heure (économise le quota AbuseIPDB/VT)
-        await self._cache_set(cache_key, report.model_dump(), ttl=3600)
+        # Ne mettre en cache que le rapport COMPLET (avec récit IA) pour ne pas
+        # polluer le cache OSINT consommé par la page Investigation.
+        if with_ai:
+            await self._cache_set(cache_key, report.model_dump(), ttl=3600)
         return report
 
     # ------------------------------------------------------------------

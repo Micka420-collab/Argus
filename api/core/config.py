@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "production"
     DEBUG: bool = False
     SECRET_KEY: str = secrets.token_hex(32)
+    # Domaine/IP de la console — sert d'adresse de manager pour l'enrôlement des agents
+    SOC_DOMAIN: str = "soc.lan"
 
     # Compte admin créé au premier démarrage (configurable par l'installeur)
     ADMIN_USERNAME: str = "admin"
