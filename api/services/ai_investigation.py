@@ -256,19 +256,28 @@ class AiInvestigationAgent:
     async def _report(self, state: dict) -> None:
         osint   = state.get("osint") or {}
         verdict = state.get("verdict") or {}
+        geo_all = osint.get("geo", {}) or {}
+        corr    = state.get("correlation", {}) or {}
+        # Contexte VOLONTAIREMENT compact : un LLM local en CPU évalue le prompt
+        # token par token. On ne transmet que l'essentiel — les gros blobs
+        # (alerte brute, corrélation complète, feedback) ralentissent fortement
+        # l'inférence sans améliorer la rédaction. Le verdict reste déterministe.
+        geo = {k: geo_all[k] for k in ("city", "country", "isp", "org", "asn_name")
+               if geo_all.get(k)}
+        actions = [a.get("label") if isinstance(a, dict) else str(a)
+                   for a in (verdict.get("recommended_actions") or [])]
+        actions = [a for a in actions if a][:5]
         ctx = {
             "ip": state.get("ip", ""),
-            "alert": state.get("alert_meta", {}),
             "verdict": verdict.get("verdict", "inconclusive"),
             "score": verdict.get("score", 0),
             "confidence": verdict.get("confidence", 0),
             "level": verdict.get("level", "low"),
-            "factors": verdict.get("factors", []),
-            "geo": osint.get("geo", {}),
+            "factors": (verdict.get("factors") or [])[:6],
+            "geo": geo,
             "attack_profile": osint.get("attack_profile", {}),
-            "correlation": state.get("correlation", {}),
-            "analyst_feedback": state.get("feedback", []),
-            "recommended_actions": verdict.get("recommended_actions", []),
+            "related_alerts": corr.get("related_count", 0),
+            "recommended_actions": actions,
         }
         ai = await llm_analyze(ctx)
         state["ai"] = ai.model_dump()
