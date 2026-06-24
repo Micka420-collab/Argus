@@ -92,6 +92,9 @@ class Settings(BaseSettings):
     # Durée pendant laquelle Ollama garde le modèle en RAM entre deux appels
     # (évite de recharger 4-5 Go à chaque investigation). "0" = décharge aussitôt.
     LLM_KEEP_ALIVE: str = "30m"
+    # Plafond de tokens générés : borne la longueur du récit → réponse plus
+    # rapide et prévisible (le verdict reste déterministe, le LLM ne fait que rédiger).
+    LLM_NUM_PREDICT: int = 768
     ANTHROPIC_API_KEY: Optional[str] = None
     AI_AUTO_INVESTIGATE: bool = False      # auto-déclenche l'IA sur alertes critiques
 

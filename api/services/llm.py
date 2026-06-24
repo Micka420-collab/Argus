@@ -148,7 +148,7 @@ async def _ollama(ctx: dict[str, Any]) -> AiAnalysis | None:
                     "stream": False,
                     "format": "json",
                     "keep_alive": settings.LLM_KEEP_ALIVE,
-                    "options": {"temperature": 0.2},
+                    "options": {"temperature": 0.2, "num_predict": settings.LLM_NUM_PREDICT},
                 },
             )
             r.raise_for_status()
@@ -226,7 +226,7 @@ async def complete(system_prompt: str, user_prompt: str) -> str:
                     f"{base}/api/chat",
                     json={"model": model, "stream": False,
                           "keep_alive": settings.LLM_KEEP_ALIVE,
-                          "options": {"temperature": 0.2},
+                          "options": {"temperature": 0.2, "num_predict": settings.LLM_NUM_PREDICT},
                           "messages": [{"role": "system", "content": system_prompt},
                                        {"role": "user", "content": user_prompt}]},
                 )

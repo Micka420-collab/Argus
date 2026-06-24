@@ -153,13 +153,16 @@ if [ ! -f .env ]; then
       warn "Ollama non activé (espace insuffisant) — IA en mode heuristique (fonctionne très bien)."
     else
       LLM_PROVIDER="ollama"
-      echo "  Modèles conseillés : qwen2.5:3b (léger, rapide en CPU) · qwen2.5:7b (équilibré) · llama3.1:8b"
-      LLM_MODEL="$(ask "Modèle Ollama" "qwen2.5:7b")"
+      echo "  Choix du modèle selon votre matériel :"
+      echo "    qwen2.5:0.5b  → CPU lent / peu de RAM   (~15 s/analyse, qualité correcte)"
+      echo "    qwen2.5:1.5b  → CPU standard (RECOMMANDÉ) (~30-90 s/analyse, bonne qualité)"
+      echo "    qwen2.5:7b    → GPU conseillé             (lent en CPU pur : >2 min/analyse)"
+      LLM_MODEL="$(ask "Modèle Ollama" "qwen2.5:1.5b")"
       # Garde-fou : éviter qu'un « y/o/oui » saisi par erreur devienne le modèle.
       case "$LLM_MODEL" in
-        ""|y|Y|yes|Yes|YES|o|O|oui|Oui|n|N|no|No|non|Non) LLM_MODEL="qwen2.5:7b" ;;
+        ""|y|Y|yes|Yes|YES|o|O|oui|Oui|n|N|no|No|non|Non) LLM_MODEL="qwen2.5:1.5b" ;;
       esac
-      [ "${#LLM_MODEL}" -lt 3 ] && LLM_MODEL="qwen2.5:7b"
+      [ "${#LLM_MODEL}" -lt 3 ] && LLM_MODEL="qwen2.5:1.5b"
     fi
   fi
   PQC_JWT="false"; ask_yn "Activer les jetons post-quantiques (JWT Ed25519) ?" "n" && PQC_JWT="true"
@@ -270,12 +273,12 @@ info "Démarrage de la stack…"
 $COMPOSE $PROFILES up -d
 
 if [ "${LLM_PROVIDER:-none}" = "ollama" ]; then
-  info "Téléchargement du modèle LLM (${LLM_MODEL:-qwen2.5:7b})…"
-  $COMPOSE exec -T ollama ollama pull "${LLM_MODEL:-qwen2.5:7b}" || warn "À relancer : docker compose exec ollama ollama pull ${LLM_MODEL:-qwen2.5:7b}"
+  info "Téléchargement du modèle LLM (${LLM_MODEL:-qwen2.5:1.5b})…"
+  $COMPOSE exec -T ollama ollama pull "${LLM_MODEL:-qwen2.5:1.5b}" || warn "À relancer : docker compose exec ollama ollama pull ${LLM_MODEL:-qwen2.5:1.5b}"
   # Pré-chargement en mémoire : la 1ʳᵉ investigation IA serait sinon très lente
   # (chargement à froid de plusieurs Go). On ignore les erreurs (non bloquant).
   info "Pré-chargement du modèle en mémoire…"
-  $COMPOSE exec -T ollama ollama run "${LLM_MODEL:-qwen2.5:7b}" "ok" >/dev/null 2>&1 || true
+  $COMPOSE exec -T ollama ollama run "${LLM_MODEL:-qwen2.5:1.5b}" "ok" >/dev/null 2>&1 || true
 fi
 
 # ---- 6. Récapitulatif ------------------------------------------------------
