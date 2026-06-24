@@ -152,7 +152,14 @@ if [ ! -f .env ]; then
     if [ "${FREE_GB:-999}" -lt 30 ] && ! ask_yn "  Seulement ${FREE_GB:-?} Go libres — activer Ollama malgré le risque de disque plein ?" "n"; then
       warn "Ollama non activé (espace insuffisant) — IA en mode heuristique (fonctionne très bien)."
     else
-      LLM_PROVIDER="ollama"; LLM_MODEL="$(ask "Modèle Ollama" "qwen2.5:7b")"
+      LLM_PROVIDER="ollama"
+      echo "  Modèles conseillés : qwen2.5:3b (léger, rapide en CPU) · qwen2.5:7b (équilibré) · llama3.1:8b"
+      LLM_MODEL="$(ask "Modèle Ollama" "qwen2.5:7b")"
+      # Garde-fou : éviter qu'un « y/o/oui » saisi par erreur devienne le modèle.
+      case "$LLM_MODEL" in
+        ""|y|Y|yes|Yes|YES|o|O|oui|Oui|n|N|no|No|non|Non) LLM_MODEL="qwen2.5:7b" ;;
+      esac
+      [ "${#LLM_MODEL}" -lt 3 ] && LLM_MODEL="qwen2.5:7b"
     fi
   fi
   PQC_JWT="false"; ask_yn "Activer les jetons post-quantiques (JWT Ed25519) ?" "n" && PQC_JWT="true"
@@ -265,6 +272,10 @@ $COMPOSE $PROFILES up -d
 if [ "${LLM_PROVIDER:-none}" = "ollama" ]; then
   info "Téléchargement du modèle LLM (${LLM_MODEL:-qwen2.5:7b})…"
   $COMPOSE exec -T ollama ollama pull "${LLM_MODEL:-qwen2.5:7b}" || warn "À relancer : docker compose exec ollama ollama pull ${LLM_MODEL:-qwen2.5:7b}"
+  # Pré-chargement en mémoire : la 1ʳᵉ investigation IA serait sinon très lente
+  # (chargement à froid de plusieurs Go). On ignore les erreurs (non bloquant).
+  info "Pré-chargement du modèle en mémoire…"
+  $COMPOSE exec -T ollama ollama run "${LLM_MODEL:-qwen2.5:7b}" "ok" >/dev/null 2>&1 || true
 fi
 
 # ---- 6. Récapitulatif ------------------------------------------------------

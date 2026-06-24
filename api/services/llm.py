@@ -147,6 +147,7 @@ async def _ollama(ctx: dict[str, Any]) -> AiAnalysis | None:
                     ],
                     "stream": False,
                     "format": "json",
+                    "keep_alive": settings.LLM_KEEP_ALIVE,
                     "options": {"temperature": 0.2},
                 },
             )
@@ -223,7 +224,9 @@ async def complete(system_prompt: str, user_prompt: str) -> str:
             async with httpx.AsyncClient(timeout=settings.LLM_TIMEOUT) as client:
                 r = await client.post(
                     f"{base}/api/chat",
-                    json={"model": model, "stream": False, "options": {"temperature": 0.2},
+                    json={"model": model, "stream": False,
+                          "keep_alive": settings.LLM_KEEP_ALIVE,
+                          "options": {"temperature": 0.2},
                           "messages": [{"role": "system", "content": system_prompt},
                                        {"role": "user", "content": user_prompt}]},
                 )

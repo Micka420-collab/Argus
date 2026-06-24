@@ -86,7 +86,12 @@ class Settings(BaseSettings):
     LLM_PROVIDER: str = "none"             # none | ollama | claude
     LLM_BASE_URL: str = "http://ollama:11434"
     LLM_MODEL: Optional[str] = None        # ex. qwen2.5:7b | claude-sonnet-4-6
-    LLM_TIMEOUT: float = 60.0
+    # Inférence CPU (sans GPU) : un modèle 7B met 30-90 s à charger+générer.
+    # 180 s couvre le chargement à froid ET la génération. Baisser si GPU.
+    LLM_TIMEOUT: float = 180.0
+    # Durée pendant laquelle Ollama garde le modèle en RAM entre deux appels
+    # (évite de recharger 4-5 Go à chaque investigation). "0" = décharge aussitôt.
+    LLM_KEEP_ALIVE: str = "30m"
     ANTHROPIC_API_KEY: Optional[str] = None
     AI_AUTO_INVESTIGATE: bool = False      # auto-déclenche l'IA sur alertes critiques
 

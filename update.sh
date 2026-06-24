@@ -40,6 +40,12 @@ info "Redémarrage de la stack…"
 # shellcheck disable=SC2086
 $COMPOSE $PROFILES up -d
 
+# Nginx résout l'IP des upstreams (soc-api, soc-frontend) une seule fois au
+# démarrage. Si « up -d » recrée ces conteneurs, ils changent d'IP et Nginx
+# pointe sur l'ancienne → 502/503. Un restart force la ré-résolution.
+info "Redémarrage de Nginx (ré-résolution des upstreams)…"
+$COMPOSE restart nginx >/dev/null 2>&1 || warn "Restart Nginx échoué — à relancer manuellement si 502."
+
 if ask_yn "Nettoyer les anciennes images Docker inutilisées ?" "y"; then
   docker image prune -f >/dev/null 2>&1 || true
   ok "Images inutilisées nettoyées."
