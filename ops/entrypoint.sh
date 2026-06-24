@@ -43,8 +43,14 @@ while true; do
       set_status "running:update"
       echo "[argus-ops] git pull…"
       if git -C "$REPO" pull --ff-only; then
-        echo "[argus-ops] reconstruction + redémarrage…"
-        if $COMPOSE up -d --build; then
+        echo "[argus-ops] reconstruction des images applicatives…"
+        # IMPORTANT : ne JAMAIS recréer argus-ops ici (on se tuerait en plein
+        # update). On reconstruit les images locales puis on recrée tous les
+        # services SAUF argus-ops lui-même.
+        TARGETS=$($COMPOSE config --services 2>/dev/null | grep -v '^argus-ops$' | tr '\n' ' ')
+        [ -z "$TARGETS" ] && TARGETS="soc-api soc-frontend nginx"
+        # shellcheck disable=SC2086
+        if $COMPOSE build soc-api soc-frontend nginx && $COMPOSE up -d $TARGETS; then
           # Nginx doit re-résoudre les nouvelles IP des conteneurs recréés
           $COMPOSE restart nginx >/dev/null 2>&1 || true
           set_status "done:update"

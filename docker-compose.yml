@@ -70,7 +70,8 @@ services:
       cluster.name: soc-cluster
       node.name: opensearch-node1
       discovery.type: single-node
-      OPENSEARCH_JAVA_OPTS: "-Xms2g -Xmx2g"
+      # Réglable via .env (utile sur petite VM). Défaut 2 Go.
+      OPENSEARCH_JAVA_OPTS: ${OPENSEARCH_JAVA_OPTS:--Xms2g -Xmx2g}
       DISABLE_SECURITY_PLUGIN: "false"
       OPENSEARCH_INITIAL_ADMIN_PASSWORD: ${OPENSEARCH_PASSWORD}
     ulimits:
@@ -138,7 +139,7 @@ services:
       - ./logstash/pipeline.conf:/usr/share/logstash/pipeline/logstash.conf:ro
       - suricata_logs:/var/log/suricata:ro   # Suricata écrit eve.json ici
     environment:
-      LS_JAVA_OPTS: "-Xmx1g -Xms1g"
+      LS_JAVA_OPTS: ${LS_JAVA_OPTS:--Xmx1g -Xms1g}
       OPENSEARCH_PASSWORD: ${OPENSEARCH_PASSWORD}
     depends_on:
       opensearch:
