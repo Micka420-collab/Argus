@@ -3,8 +3,9 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 COPY package.json package-lock.json* ./
-# Pas de --silent : on veut voir l'erreur réelle (ex. ENOSPC disque plein)
-RUN npm ci --no-audit --no-fund
+# npm ci (reproductible) avec repli npm install si le lock dérive d'une autre
+# version de npm. Pas de --silent : on veut voir l'erreur réelle.
+RUN npm ci --no-audit --no-fund || npm install --no-audit --no-fund
 
 COPY . .
 ENV REACT_APP_API_URL=/api/v1
