@@ -41,19 +41,21 @@ _SYSTEM_PROMPT = (
     "Tu es un analyste SOC senior. On te fournit les preuves structurées d'une "
     "investigation OSINT sur une adresse IP ET un verdict DÉJÀ calculé de manière "
     "déterministe. Ta mission est UNIQUEMENT de rédiger une analyse claire en "
-    "français : un résumé, un récit d'investigation factuel, et des actions de "
-    "remédiation concrètes. NE change JAMAIS le verdict ni le score fournis — "
-    "tu les expliques, tu ne les recalcules pas. Réponds STRICTEMENT en JSON avec "
-    "les clés : summary (string), narrative (string), recommended_actions (array de strings)."
+    "français, en t'appuyant STRICTEMENT sur les preuves fournies (n'invente RIEN). "
+    "NE change JAMAIS le verdict ni le score — tu les expliques, tu ne les recalcules pas. "
+    "Sois CONCIS. Réponds STRICTEMENT en JSON avec exactement ces clés : "
+    "summary (string, 1 phrase), narrative (string, 3 à 4 phrases maximum), "
+    "recommended_actions (array de 2 à 4 strings courtes). Aucun texte hors du JSON."
 )
 
 
 def _build_user_prompt(ctx: dict[str, Any]) -> str:
     return (
         "Preuves de l'investigation (JSON) :\n"
-        f"{json.dumps(ctx, ensure_ascii=False, indent=2)}\n\n"
-        "Rédige l'analyse. Sois factuel, concis, et oriente l'analyste vers la "
-        "prochaine action utile. Format de sortie : JSON uniquement."
+        f"{json.dumps(ctx, ensure_ascii=False)}\n\n"
+        "Rédige l'analyse en français, brièvement et UNIQUEMENT à partir de ces "
+        "preuves. Oriente l'analyste vers la prochaine action utile. "
+        "Format de sortie : JSON uniquement (summary, narrative, recommended_actions)."
     )
 
 
