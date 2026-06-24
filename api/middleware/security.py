@@ -49,9 +49,10 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response: Response = await call_next(request)
         for header, value in self.SECURITY_HEADERS.items():
             response.headers[header] = value
-        # Supprimer le header qui expose la technologie
-        response.headers.pop("server", None)
-        response.headers.pop("x-powered-by", None)
+        # Supprimer les headers qui exposent la techno (MutableHeaders n'a pas .pop())
+        for h in ("server", "x-powered-by"):
+            if h in response.headers:
+                del response.headers[h]
         return response
 
 
